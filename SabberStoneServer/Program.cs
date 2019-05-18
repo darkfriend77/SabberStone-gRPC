@@ -1,40 +1,31 @@
 ﻿using System;
-using System.Threading.Tasks;
-using Grpc.Core;
+using System.IO;
+using System.Reflection;
+using System.Xml;
+using log4net;
+using log4net.Config;
 
 namespace SabberStoneServer
 {
-    internal class TestgRpcImpl : TestgRPC.TestgRPCBase
-    {
-        // Server side handler of the SayHello RPC
-        public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
-        {
-            Console.WriteLine(context.Peer);
-
-            var reply = new HelloReply {Message = $"Hello {request.Name}"};
-
-            return Task.FromResult(reply);
-        }
-    }
-
     public class Program
     {
-        private const int Port = 50051;
+        private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
+        private static readonly string LogConfigFile = @"log4net.config";
 
         public static void Main(string[] args)
         {
-            var server = new Server
-            {
-                Services = { TestgRPC.BindService(new TestgRpcImpl()) },
-                Ports = { new ServerPort("localhost", Port, ServerCredentials.Insecure) }
-            };
-            server.Start();
+            var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
+            XmlConfigurator.Configure(logRepository, new FileInfo(LogConfigFile));
 
-            Console.WriteLine($"Greeter server listening on port {Port}");
-            Console.WriteLine("Press any key to stop the server...");
+
+            var sabberStoneServer = new Core.GameServer();
+            sabberStoneServer.Start();
+
+            Log.Info("Press any key to stop the server...");
             Console.ReadKey();
 
-            server.ShutdownAsync().Wait();
+            sabberStoneServer.Stop();
         }
     }
 }

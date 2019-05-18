@@ -1,2 +1,38 @@
 ﻿syntax = "proto3";
 
+// The greeting service definition.
+service GameServerService {
+
+	rpc Ping (PingRequest) returns (PingReply) {}
+	rpc Authentication (AuthRequest) returns (AuthReply) {}
+	rpc GameQueue (QueueRequest) returns (QueueReply) {}
+}
+
+message PingRequest {
+	string message = 1;
+}
+message PingReply {
+	bool requestState = 1;
+	string requestMessage = 2;
+}
+
+message AuthRequest {
+	string accountName = 1;
+	string accountPsw = 2;
+}
+message AuthReply {
+	bool requestState = 1;
+	string requestMessage = 2;
+	int32 sessionId = 3;
+	string sessionToken = 4;
+}
+
+message QueueRequest {
+	int32 sessionId = 1;
+	string sessionToken = 2;
+	int32 gameType = 3;
+}
+message QueueReply {
+	bool requestState = 1;
+	string requestMessage = 2;
+}

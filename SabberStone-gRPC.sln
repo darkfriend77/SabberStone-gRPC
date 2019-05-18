@@ -3,11 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.28803.352
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SabberStoneContract", "SabberStoneContract\SabberStoneContract.csproj", "{813A792A-8EA2-44AD-99CA-F03702A0F193}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SabberStoneContract", "SabberStoneContract\SabberStoneContract.csproj", "{813A792A-8EA2-44AD-99CA-F03702A0F193}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SabberStoneServer", "SabberStoneServer\SabberStoneServer.csproj", "{A3DDDE04-6BFE-40DF-8465-A2D8C7469C15}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SabberStoneServer", "SabberStoneServer\SabberStoneServer.csproj", "{A3DDDE04-6BFE-40DF-8465-A2D8C7469C15}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SabberStoneClient", "SabberStoneClient\SabberStoneClient.csproj", "{16BFEAC9-D90A-4A4D-83CE-1247629CB8DB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SabberStoneClient", "SabberStoneClient\SabberStoneClient.csproj", "{16BFEAC9-D90A-4A4D-83CE-1247629CB8DB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SabberStoneXTest", "SabberStoneXTest\SabberStoneXTest.csproj", "{E1A9699B-EA93-46E6-A27D-246F79306164}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,10 @@ Global
 		{16BFEAC9-D90A-4A4D-83CE-1247629CB8DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{16BFEAC9-D90A-4A4D-83CE-1247629CB8DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{16BFEAC9-D90A-4A4D-83CE-1247629CB8DB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E1A9699B-EA93-46E6-A27D-246F79306164}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1A9699B-EA93-46E6-A27D-246F79306164}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1A9699B-EA93-46E6-A27D-246F79306164}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1A9699B-EA93-46E6-A27D-246F79306164}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <Protobuf Include="Contracts\TestgRPC.proto" Link="TestgRPC.proto" />
+    <Protobuf Include="Contracts\GameServer.proto" Link="GameServer.proto" />
   </ItemGroup>
 
 </Project>
