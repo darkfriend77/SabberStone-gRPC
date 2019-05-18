@@ -4,8 +4,17 @@
 service GameServerService {
 
 	rpc Ping (PingRequest) returns (PingReply) {}
+
 	rpc Authentication (AuthRequest) returns (AuthReply) {}
+
 	rpc GameQueue (QueueRequest) returns (QueueReply) {}
+}
+
+
+enum GameType
+{
+	Normal = 0;
+	Ranked = 1;
 }
 
 message PingRequest {
@@ -30,9 +39,11 @@ message AuthReply {
 message QueueRequest {
 	int32 sessionId = 1;
 	string sessionToken = 2;
-	int32 gameType = 3;
+	GameType type = 3;
 }
 message QueueReply {
 	bool requestState = 1;
 	string requestMessage = 2;
 }
+
+
