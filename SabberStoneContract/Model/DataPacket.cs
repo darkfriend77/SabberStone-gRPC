@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Grpc.Core;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -28,6 +29,13 @@ namespace SabberStoneContract.Model
         Config,
         Game,
         Quit
+    }
+
+    public class UserDataInfo : UserInfo
+    {
+        public virtual string Token { get; set; }
+        public virtual string Peer { get; set; }
+        public virtual IServerStreamWriter<GameServerStream> ResponseStream { get; set; }
     }
 
     public class UserInfo

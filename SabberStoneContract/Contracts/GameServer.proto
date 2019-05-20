@@ -7,9 +7,11 @@ service GameServerService {
 
 	rpc Authentication (AuthRequest) returns (AuthReply) {}
 
-	rpc GameQueue (QueueRequest) returns (QueueReply) {}
-}
+	rpc GameServerChannel (stream GameServerStream) returns (stream GameServerStream) {}
 
+	rpc GameQueue (QueueRequest) returns (QueueReply) {}
+
+}
 
 enum GameType
 {
@@ -46,4 +48,9 @@ message QueueReply {
 	string requestMessage = 2;
 }
 
+message GameServerStream {
+	int32 sessionId = 1;
+	string sessionToken = 2;
+	string message = 3;
+}
 

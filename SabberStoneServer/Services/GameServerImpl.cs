@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 using log4net;
@@ -18,11 +21,11 @@ namespace SabberStoneServer.Services
         private int _index = 10000;
         public int NextSessionIndex => _index++;
 
-        private readonly ConcurrentDictionary<string, UserInfo> _registredUsers;
+        private readonly ConcurrentDictionary<string, UserDataInfo> _registredUsers;
 
         public GameServerServiceImpl()
         {
-            _registredUsers = new ConcurrentDictionary<string, UserInfo>();
+            _registredUsers = new ConcurrentDictionary<string, UserDataInfo>();
         }
 
         public override Task<PingReply> Ping(PingRequest request, ServerCallContext context)
@@ -40,6 +43,7 @@ namespace SabberStoneServer.Services
 
         public override Task<AuthReply> Authentication(AuthRequest request, ServerCallContext context)
         {
+
             Log.Info(context.Peer);
 
             // invalid accountname
@@ -49,16 +53,28 @@ namespace SabberStoneServer.Services
                 return Task.FromResult(new AuthReply() { RequestState = false });
             }
 
+            var user = _registredUsers.Values.ToList().Find(p => p.AccountName == request.AccountName);
+
             // already authentificated accounts
-            if (_registredUsers.ContainsKey(request.AccountName) )
+            if (user != null)
             {
-                Log.Warn($"{request.AccountName} is already registred!");
-                return Task.FromResult(new AuthReply() {RequestState = false});
+                if (user.Peer.Equals(context.Peer))
+                {
+                    Log.Warn($"{request.AccountName} is already registred, with the same peer!");
+                    return Task.FromResult(new AuthReply { RequestState = false });
+                }
+
+                // TODO same account with a new connection
+                Log.Warn($"{request.AccountName} is already registred, with a different peer!");
+                return Task.FromResult(new AuthReply { RequestState = false });
             }
 
-            var userInfo = new UserInfo()
+            var sessionId = NextSessionIndex;
+            var userInfo = new UserDataInfo
             {
-                SessionId = NextSessionIndex,
+                Peer = context.Peer,
+                Token = Helper.ComputeSha256Hash(sessionId + request.AccountName + context.Peer),
+                SessionId = sessionId,
                 AccountName = request.AccountName,
                 UserState = UserState.None,
                 GameId = -1,
@@ -67,13 +83,12 @@ namespace SabberStoneServer.Services
                 PlayerState = PlayerState.None
             };
 
-            var token = Helper.ComputeSha256Hash(userInfo.SessionId + userInfo.AccountName);
 
             // failed registration
-            if (!_registredUsers.TryAdd(token, userInfo))
+            if (!_registredUsers.TryAdd(userInfo.Token, userInfo))
             {
                 Log.Warn($"failed to register user with account {request.AccountName}!");
-                return Task.FromResult(new AuthReply() { RequestState = false });
+                return Task.FromResult(new AuthReply { RequestState = false });
             }
 
             var reply = new AuthReply
@@ -81,10 +96,36 @@ namespace SabberStoneServer.Services
                 RequestState = true,
                 RequestMessage = string.Empty,
                 SessionId = userInfo.SessionId,
-                SessionToken = token
+                SessionToken = userInfo.Token
             };
 
             return Task.FromResult(reply);
+        }
+
+        public override async Task GameServerChannel(IAsyncStreamReader<GameServerStream> requestStream, IServerStreamWriter<GameServerStream> responseStream, ServerCallContext context)
+        {
+            var requestStreamReader = Task.Run(async () =>
+            {
+                Log.Info($"gameserver channel opened for user!");
+                while (await requestStream.MoveNext(CancellationToken.None))
+                {
+                    var response = ProcessRequest(requestStream.Current);
+                    await responseStream.WriteAsync(response);
+                }
+            });
+
+
+            await requestStreamReader;
+            Log.Info($"gameserver channel closed for user!");
+        }
+
+        private GameServerStream ProcessRequest(GameServerStream current)
+        {
+            return new GameServerStream() {
+                SessionId = current.SessionId,
+                SessionToken = current.SessionToken,
+                Message = $"{current.Message} ... ECHO"
+            };
         }
 
         public override Task<QueueReply> GameQueue(QueueRequest request, ServerCallContext context)
