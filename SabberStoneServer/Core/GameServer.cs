@@ -7,7 +7,7 @@ namespace SabberStoneServer.Core
 {
     public class GameServer
     {
-        private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        private static readonly ILog Log = Logger.Instance.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private readonly int _port;
 

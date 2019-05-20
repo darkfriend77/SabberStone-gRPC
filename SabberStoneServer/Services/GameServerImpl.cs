@@ -11,12 +11,13 @@ using System.Threading.Tasks;
 using Grpc.Core;
 using log4net;
 using SabberStoneContract.Model;
+using SabberStoneServer.Core;
 
 namespace SabberStoneServer.Services
 {
     public class GameServerServiceImpl : GameServerService.GameServerServiceBase
     {
-        private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        private static readonly ILog Log = Logger.Instance.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private int _index = 10000;
         public int NextSessionIndex => _index++;

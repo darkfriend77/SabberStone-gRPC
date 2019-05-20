@@ -4,22 +4,17 @@ using System.Reflection;
 using System.Xml;
 using log4net;
 using log4net.Config;
+using SabberStoneServer.Core;
 
 namespace SabberStoneServer
 {
     public class Program
     {
-        private static readonly ILog Log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-
-        private static readonly string LogConfigFile = @"log4net.config";
+        private static readonly ILog Log = Logger.Instance.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         public static void Main(string[] args)
         {
-            var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
-            XmlConfigurator.Configure(logRepository, new FileInfo(LogConfigFile));
-
-
-            var sabberStoneServer = new Core.GameServer();
+            var sabberStoneServer = new GameServer();
             sabberStoneServer.Start();
 
             Log.Info("Press any key to stop the server...");

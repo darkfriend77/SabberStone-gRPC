@@ -23,21 +23,21 @@ namespace SabberStoneXConsole
                 SessionId = 1,
                 SessionToken = "abc",
                 Message = "testing"
-            }, 2000);
+            }, 250);
 
             Task clientB = CreateClientTask(target, new GameServerStream()
             {
                 SessionId = 2,
                 SessionToken = "xyz",
                 Message = "lying"
-            }, 3000);
+            }, 500);
 
             Task clientC = CreateClientTask(target, new GameServerStream()
             {
                 SessionId = 3,
                 SessionToken = "ups",
                 Message = "sabber"
-            }, 4000);
+            }, 750);
 
             while(!clientA.IsCompleted || !clientB.IsCompleted || !clientC.IsCompleted)
             {
@@ -69,10 +69,11 @@ namespace SabberStoneXConsole
                         Console.WriteLine($"[Id:{call.ResponseStream.Current.SessionId}][Token:{call.ResponseStream.Current.SessionToken}]: {call.ResponseStream.Current.Message}.");
                     };
                 });
+
                 await request;
-                await response;
+                //await response;
             }
-            await channel.ShutdownAsync();
+
         }
     }
 }
