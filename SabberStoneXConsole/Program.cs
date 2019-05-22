@@ -52,7 +52,11 @@ namespace SabberStoneXConsole
         {
             var channel = new Channel(target, ChannelCredentials.Insecure);
             var client = new GameServerService.GameServerServiceClient(channel);
-            using (var call = client.GameServerChannel())
+
+            // authentificate
+            var reply1 = client.Authentication(new AuthRequest { AccountName = $"Test::{gameServerStream.SessionId}", AccountPsw = string.Empty });
+
+            using (var call = client.GameServerChannel(headers: new Metadata { new Metadata.Entry("token", reply1.SessionToken) }))
             {
                 var request = Task.Run(async () =>
                 {

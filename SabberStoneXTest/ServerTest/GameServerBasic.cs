@@ -72,9 +72,14 @@ namespace SabberStoneXTest.ServerTest
             var client1 = new GameServerService.GameServerServiceClient(channel1);
             Assert.Equal(ChannelState.Idle, channel1.State);
 
-            using (var call = client1.GameServerChannel())
+            var reply1 = client1.Authentication(new AuthRequest { AccountName = "Test", AccountPsw = string.Empty });
+
+            Assert.True(reply1.RequestState);
+            Assert.Equal(10000, reply1.SessionId);
+
+            using (var call = client1.GameServerChannel(headers: new Metadata { new Metadata.Entry("token", reply1.SessionToken) }))
             {
-                await call.RequestStream.WriteAsync(new GameServerStream()
+                await call.RequestStream.WriteAsync(new GameServerStream
                 {
                     SessionId = 1,
                     SessionToken = "abc",

@@ -4,8 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Reflection;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
@@ -44,9 +42,6 @@ namespace SabberStoneServer.Services
 
         public override Task<AuthReply> Authentication(AuthRequest request, ServerCallContext context)
         {
-
-            Log.Info(context.Peer);
-
             // invalid accountname
             if (request.AccountName == null || request.AccountName.Length < 3)
             {
@@ -105,24 +100,42 @@ namespace SabberStoneServer.Services
 
         public override async Task GameServerChannel(IAsyncStreamReader<GameServerStream> requestStream, IServerStreamWriter<GameServerStream> responseStream, ServerCallContext context)
         {
+            if (!TokenAuthentification(context.RequestHeaders, out string clientTokenValue))
+            {
+                return;
+            }
+
+            if (ClientManager.ClientDictionary.ContainsKey(clientTokenValue))
+            {
+                Log.Info($"bad game server channel request, token already registred!");
+                return;
+            }
+
+            if (!ClientManager.ClientDictionary.TryAdd(clientTokenValue,
+                new Client(requestStream, responseStream, context)))
+            {
+                Log.Info($"bad game server channel request, couldn't add to client manager!");
+                return;
+            };
+
             var requestStreamReader = Task.Run(async () =>
             {
                 Log.Info($"gameserver channel opened for user!");
                 while (await requestStream.MoveNext(CancellationToken.None))
                 {
-                    var response = ProcessRequest(requestStream.Current);
+                    var response = ProcessRequest(clientTokenValue, requestStream.Current);
                     await responseStream.WriteAsync(response);
                 }
             });
-
 
             await requestStreamReader;
             Log.Info($"gameserver channel closed for user!");
         }
 
-        private GameServerStream ProcessRequest(GameServerStream current)
+        private GameServerStream ProcessRequest(string clientTokenValue, GameServerStream current)
         {
-            return new GameServerStream() {
+            return new GameServerStream
+            {
                 SessionId = current.SessionId,
                 SessionToken = current.SessionToken,
                 Message = $"{current.Message} ... ECHO"
@@ -131,36 +144,92 @@ namespace SabberStoneServer.Services
 
         public override Task<QueueReply> GameQueue(QueueRequest request, ServerCallContext context)
         {
-            Log.Info(context.Peer);
+            if (!TokenAuthentification(context.RequestHeaders, out _))
+            {
+                return Task.FromResult(new QueueReply
+                {
+                    RequestState = false,
+                    RequestMessage = string.Empty
+                });
+            }
 
-            var reply = new QueueReply
+            return Task.FromResult(new QueueReply
             {
                 RequestState = true,
                 RequestMessage = string.Empty
-            };
-
-            return Task.FromResult(reply);
+            });
         }
-    }
 
-    public class Helper
-    {
-        public static string ComputeSha256Hash(string rawData)
+        private bool TokenAuthentification(Metadata metaData, out string clientTokenValue)
         {
-            // Create a SHA256   
-            using (var sha256Hash = SHA256.Create())
-            {
-                // ComputeHash - returns byte array  
-                byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(rawData));
+            clientTokenValue = null;
 
-                // Convert byte array to a string   
-                var builder = new StringBuilder();
-                foreach (var t in bytes)
-                {
-                    builder.Append(t.ToString("x2"));
-                }
-                return builder.ToString();
+            var clientToken = metaData.SingleOrDefault(e => e.Key == "token");
+            if (clientToken == null || clientToken.Value.Length == 0 || !_registredUsers.ContainsKey(clientToken.Value))
+            {
+                Log.Info($"bad game server channel request, no valid token!");
+                return false;
             }
+
+            clientTokenValue = clientToken.Value;
+            return true;
+
         }
     }
+
+    public static class ClientManager
+    {
+        public static ConcurrentDictionary<string, Client> ClientDictionary = new ConcurrentDictionary<string, Client>();
+
+        public static void SendMessage(string clientName, string message)
+        {
+            ClientDictionary[clientName].SendMessage(message);
+        }
+
+        public static void Disconnect(string clientName)
+        {
+            ClientDictionary[clientName].Disconnect();
+        }
+    }
+
+    public class Client
+    {
+        private readonly IAsyncStreamReader<GameServerStream> _requestStream;
+        private readonly IServerStreamWriter<GameServerStream> _responseStream;
+        private readonly ServerCallContext _context;
+        private readonly CancellationTokenSource _cts;
+
+        private TaskCompletionSource<GameServerStream> _tcs;
+
+
+        public CancellationToken CancellationToken => _cts.Token;
+
+        public Client(IAsyncStreamReader<GameServerStream> requestStream, IServerStreamWriter<GameServerStream> responseStream, ServerCallContext context)
+        {
+            _requestStream = requestStream;
+            _responseStream = responseStream;
+            _context = context;
+            _cts = new CancellationTokenSource();
+            _tcs = new TaskCompletionSource<GameServerStream>();
+        }
+
+        public void Disconnect()
+        {
+            _tcs.SetCanceled();
+            _cts.Cancel();
+        }
+
+        public void SendMessage(string message)
+        {
+            if (_tcs == null)
+                throw new Exception();
+
+            _tcs.SetResult(new GameServerStream
+            {
+                Message = message
+            });
+        }
+    }
+
+
 }

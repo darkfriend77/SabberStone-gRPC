@@ -14,14 +14,6 @@ namespace SabberStoneContract.Model
         InGame
     }
 
-    public enum DeckType
-    {
-        None,
-        Random,
-        DeckString,
-        CardIds
-    }
-
     public enum PlayerState
     {
         None,
