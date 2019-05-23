@@ -62,6 +62,38 @@ namespace SabberStoneXTest.ServerTest
         }
 
         [Fact]
+        public void GameQueueRequest()
+        {
+            _server.Start();
+
+            var channel1 = new Channel(_target, ChannelCredentials.Insecure);
+            Assert.Equal(ChannelState.Idle, channel1.State);
+
+            var client1 = new GameServerService.GameServerServiceClient(channel1);
+            Assert.Equal(ChannelState.Idle, channel1.State);
+
+            var reply1 = client1.Authentication(new AuthRequest { AccountName = "Test", AccountPsw = string.Empty });
+
+            Assert.True(reply1.RequestState);
+            Assert.Equal(10000, reply1.SessionId);
+
+            var reply2 = client1.GameQueue(
+                new QueueRequest
+                {
+                    GameType = GameType.Normal,
+                    DeckType = DeckType.Random,
+                    DeckData = string.Empty
+                },
+                new Metadata {
+                    new Metadata.Entry("token", reply1.SessionToken)
+                });
+
+            Assert.True(reply2.RequestState);
+
+            _server.Stop();
+        }
+
+        [Fact]
         public async Task GameServerChannelAsync()
         {
             _server.Start();
@@ -81,14 +113,10 @@ namespace SabberStoneXTest.ServerTest
             {
                 await call.RequestStream.WriteAsync(new GameServerStream
                 {
-                    SessionId = 1,
-                    SessionToken = "abc",
                     Message = "testing"
                 });
 
                 Assert.True(await call.ResponseStream.MoveNext());
-                Assert.Equal(1, call.ResponseStream.Current.SessionId);
-                Assert.Equal("abc", call.ResponseStream.Current.SessionToken);
                 Assert.Equal("testing ... ECHO", call.ResponseStream.Current.Message);
             }
 

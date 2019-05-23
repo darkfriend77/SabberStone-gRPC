@@ -20,22 +20,16 @@ namespace SabberStoneXConsole
 
             Task clientA = CreateClientTask(target, new GameServerStream()
             {
-                SessionId = 1,
-                SessionToken = "abc",
                 Message = "testing"
             }, 250);
 
             Task clientB = CreateClientTask(target, new GameServerStream()
             {
-                SessionId = 2,
-                SessionToken = "xyz",
                 Message = "lying"
             }, 500);
 
             Task clientC = CreateClientTask(target, new GameServerStream()
             {
-                SessionId = 3,
-                SessionToken = "ups",
                 Message = "sabber"
             }, 750);
 
@@ -48,13 +42,15 @@ namespace SabberStoneXConsole
             Console.ReadKey();
         }
 
+        private static int index = 1;
+
         private static async Task CreateClientTask(string target, GameServerStream gameServerStream, int sleepMs)
         {
             var channel = new Channel(target, ChannelCredentials.Insecure);
             var client = new GameServerService.GameServerServiceClient(channel);
 
             // authentificate
-            var reply1 = client.Authentication(new AuthRequest { AccountName = $"Test::{gameServerStream.SessionId}", AccountPsw = string.Empty });
+            var reply1 = client.Authentication(new AuthRequest { AccountName = $"Test::{index++}", AccountPsw = string.Empty });
 
             using (var call = client.GameServerChannel(headers: new Metadata { new Metadata.Entry("token", reply1.SessionToken) }))
             {
@@ -70,7 +66,7 @@ namespace SabberStoneXConsole
                 {
                     while (await call.ResponseStream.MoveNext(CancellationToken.None))
                     {
-                        Console.WriteLine($"[Id:{call.ResponseStream.Current.SessionId}][Token:{call.ResponseStream.Current.SessionToken}]: {call.ResponseStream.Current.Message}.");
+                        Console.WriteLine($"{call.ResponseStream.Current.Message}");
                     };
                 });
 

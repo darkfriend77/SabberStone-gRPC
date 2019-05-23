@@ -47,11 +47,9 @@ message AuthReply {
 }
 
 message QueueRequest {
-	int32 sessionId = 1;
-	string sessionToken = 2;
-	GameType gameType = 3;
-	DeckType deckType = 4;
-	string deckData = 5;
+	GameType gameType = 1;
+	DeckType deckType = 2;
+	string deckData = 3;
 }
 message QueueReply {
 	bool requestState = 1;
@@ -59,8 +57,6 @@ message QueueReply {
 }
 
 message GameServerStream {
-	int32 sessionId = 1;
-	string sessionToken = 2;
-	string message = 3;
+	string message = 1;
 }
 

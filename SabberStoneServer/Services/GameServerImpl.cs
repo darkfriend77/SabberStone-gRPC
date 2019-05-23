@@ -136,8 +136,6 @@ namespace SabberStoneServer.Services
         {
             return new GameServerStream
             {
-                SessionId = current.SessionId,
-                SessionToken = current.SessionToken,
                 Message = $"{current.Message} ... ECHO"
             };
         }
