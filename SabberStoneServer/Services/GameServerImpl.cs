@@ -144,7 +144,7 @@ namespace SabberStoneServer.Services
 
         public override Task<QueueReply> GameQueue(QueueRequest request, ServerCallContext context)
         {
-            if (!TokenAuthentification(context.RequestHeaders, out _))
+            if (!TokenAuthentification(context.RequestHeaders, out string clientTokenValue))
             {
                 return Task.FromResult(new QueueReply
                 {
@@ -153,6 +153,21 @@ namespace SabberStoneServer.Services
                 });
             }
 
+            if (!_registredUsers.TryGetValue(clientTokenValue, out UserDataInfo userDataInfo))
+            {
+                Log.Info($"couldn't get user data info!");
+                return Task.FromResult(new QueueReply
+                {
+                    RequestState = false,
+                    RequestMessage = string.Empty
+                });
+            }
+
+            // updated user informations
+            userDataInfo.UserState = UserState.Queued;
+            userDataInfo.DeckType = request.DeckType;
+            userDataInfo.DeckData = request.DeckData;
+ 
             return Task.FromResult(new QueueReply
             {
                 RequestState = true,
