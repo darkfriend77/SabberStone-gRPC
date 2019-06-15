@@ -11,7 +11,7 @@ namespace SabberStoneXTest.ServerTest
     {
         private readonly GameServer _server;
 
-        private int _port = 50051;
+        private int _port = 50052;
 
         private string _target;
 
