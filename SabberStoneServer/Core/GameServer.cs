@@ -13,15 +13,23 @@ namespace SabberStoneServer.Core
 
         private readonly Server _server;
 
+        private readonly GameServerServiceImpl _gameServerService;
+
+        private readonly MatchMakerService _matchMakerService;
+
         public GameServer(int port = 50051)
         {
             _port = port;
+
+            _gameServerService = new GameServerServiceImpl();
+
+            _matchMakerService = new MatchMakerService(_gameServerService);
 
             _server = new Server
             {
                 Services =
                 {
-                    GameServerService.BindService(new GameServerServiceImpl())
+                    GameServerService.BindService(_gameServerService)
                 },
                 Ports =
                 {
@@ -40,5 +48,11 @@ namespace SabberStoneServer.Core
         {
             _server.ShutdownAsync().Wait();
         }
+
+        public MatchMakerService GetMatchMakerService()
+        {
+            return _matchMakerService;
+        }
+
     }
 }
