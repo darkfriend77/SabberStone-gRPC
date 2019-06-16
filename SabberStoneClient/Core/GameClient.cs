@@ -3,7 +3,9 @@ using log4net;
 using Newtonsoft.Json;
 using SabberStoneClient.Core;
 using SabberStoneContract.Model;
+using SabberStoneCore.Kettle;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
@@ -39,6 +41,10 @@ namespace SabberStoneClient
 
         private int _playerId;
 
+        public ConcurrentQueue<IPowerHistoryEntry> HistoryEntries { get; }
+
+        public List<PowerOption> PowerOptionList { get; private set; }
+
         public GameClient(int port)
         {
             _port = port;
@@ -47,6 +53,9 @@ namespace SabberStoneClient
 
             _gameId = -1;
             _playerId = -1;
+
+            HistoryEntries = new ConcurrentQueue<IPowerHistoryEntry>();
+            PowerOptionList = new List<PowerOption>();
         }
 
         public void Connect()
@@ -135,14 +144,14 @@ namespace SabberStoneClient
 
         private void ProcessChannelMessage(GameServerStream current)
         {
-            Log.Warn($"ProcessChannelMessage[{current.MessageState},{current.MessageType}]: '{current.Message}'");
+            Log.Warn($"ProcessChannelMessage[{current.MessageState},{current.MessageType}]: '{(current.Message.Length > 100 ? current.Message.Substring(0, 100) + "..." : current.Message)}'");
 
             if (!current.MessageState)
             {
                 Log.Warn($"Failed messageType {current.MessageType}, '{current.Message}'!");
                 return;
             }
-
+            GameData gameData = null;
             switch (current.MessageType)
             {
                 case MessageType.Initialisation:
@@ -150,7 +159,7 @@ namespace SabberStoneClient
                     break;
 
                 case MessageType.Invitation:
-                    var gameData = JsonConvert.DeserializeObject<GameData>(current.Message);
+                    gameData = JsonConvert.DeserializeObject<GameData>(current.Message);
                     _gameId = gameData.GameId;
                     _playerId = gameData.PlayerId;
 
@@ -158,7 +167,18 @@ namespace SabberStoneClient
                     break;
 
                 case MessageType.InGame:
-                    SetClientState(GameClientState.InGame);
+                    gameData = JsonConvert.DeserializeObject<GameData>(current.Message);
+                    switch (gameData.GameDataType)
+                    {
+                        case GameDataType.None:
+                            SetClientState(GameClientState.InGame);
+                            break;
+
+                        case GameDataType.PowerHistory:
+                            List<IPowerHistoryEntry> powerHistoryEntries = JsonConvert.DeserializeObject<List<IPowerHistoryEntry>>(gameData.GameDataObject, new PowerHistoryConverter());
+                            powerHistoryEntries.ForEach(p => HistoryEntries.Enqueue(p));
+                            break;
+                    }
                     break;
             }
         }

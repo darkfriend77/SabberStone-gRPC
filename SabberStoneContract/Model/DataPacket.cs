@@ -43,7 +43,8 @@ namespace SabberStoneContract.Model
 
     public enum GameDataType
     {
-        None
+        None,
+        PowerHistory
     }
 
     public class GameData

@@ -153,10 +153,11 @@ namespace SabberStoneServer.Services
             Log.Info($"[_gameId:{GameId}] Game creation done!");
             _game.StartGame();
 
-            ProcessPowerHistoryData(1, Player1, _game.PowerHistory.Last);
-            ProcessPowerHistoryData(2, Player2, _game.PowerHistory.Last);
+            string powerHistory = JsonConvert.SerializeObject(_game.PowerHistory.Last);
+            SendGameData(Player1, MessageType.InGame, true, GameDataType.PowerHistory, powerHistory);
+            SendGameData(Player2, MessageType.InGame, true, GameDataType.PowerHistory, powerHistory);
 
-            SendPowerOptionsToPlayers();
+            //SendPowerOptionsToPlayers();
         }
 
         private void SendPowerOptionsToPlayers()
