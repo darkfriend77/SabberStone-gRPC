@@ -107,6 +107,12 @@ namespace SabberStoneServer.Services
                 return;
             }
 
+            if (!_registredUsers.TryGetValue(clientTokenValue, out UserDataInfo userDataInfo))
+            {
+                Log.Info($"couldn't get user data info!");
+                return;
+            }
+
             if (ClientManager.ClientDictionary.ContainsKey(clientTokenValue))
             {
                 Log.Info($"bad game server channel request, token already registred!");
@@ -119,6 +125,9 @@ namespace SabberStoneServer.Services
                 Log.Info($"bad game server channel request, couldn't add to client manager!");
                 return;
             };
+
+            // adding the response stream to user data
+            userDataInfo.ResponseStream = responseStream;
 
             var requestStreamReader = Task.Run(async () =>
             {
@@ -136,10 +145,13 @@ namespace SabberStoneServer.Services
 
         private GameServerStream ProcessRequest(string clientTokenValue, GameServerStream current)
         {
-            return new GameServerStream
+            switch (current.MessageType)
             {
-                Message = $"{current.Message} ... ECHO"
-            };
+                case MessageType.Initialisation:
+                    return new GameServerStream() { MessageType = MessageType.Initialisation, MessageState = true, Message = string.Empty };
+                default:
+                    return new GameServerStream() { MessageType = MessageType.Initialisation, MessageState = false, Message = string.Empty };
+            }
         }
 
         public override Task<QueueReply> GameQueue(QueueRequest request, ServerCallContext context)
@@ -163,11 +175,21 @@ namespace SabberStoneServer.Services
                 });
             }
 
+            if (!ClientManager.ClientDictionary.TryGetValue(clientTokenValue, out Client _))
+            {
+                Log.Info($"User hasn't established a channel initialisation!");
+                return Task.FromResult(new QueueReply
+                {
+                    RequestState = false,
+                    RequestMessage = string.Empty
+                });
+            }
+
             // updated user informations
             userDataInfo.UserState = UserState.Queued;
             userDataInfo.DeckType = request.DeckType;
             userDataInfo.DeckData = request.DeckData;
- 
+
             return Task.FromResult(new QueueReply
             {
                 RequestState = true,

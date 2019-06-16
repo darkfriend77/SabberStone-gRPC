@@ -27,6 +27,13 @@ enum DeckType
 	CardIds = 3;
 }
 
+enum MessageType
+{
+	BadRequest = 0;
+	Initialisation = 1;
+	Invitation = 2;
+}
+
 message PingRequest {
 	string message = 1;
 }
@@ -57,6 +64,8 @@ message QueueReply {
 }
 
 message GameServerStream {
-	string message = 1;
+	MessageType messageType = 1;
+	bool messageState = 2;
+	string message = 3;
 }
 

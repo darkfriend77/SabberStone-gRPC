@@ -18,7 +18,6 @@ namespace SabberStoneContract.Model
     {
         None,
         Invitation,
-        Config,
         Game,
         Quit
     }
@@ -39,5 +38,17 @@ namespace SabberStoneContract.Model
         public virtual DeckType DeckType { get; set; }
         public virtual string DeckData { get; set; }
         public virtual PlayerState PlayerState { get; set; }
+    }
+
+    public enum GameDataType
+    {
+        None
+    }
+
+    public class GameData
+    {
+        public virtual int GameId { get; set; }
+        public virtual int PlayerId { get; set; }
+        public virtual GameDataType GameDataType { get; set; }
     }
 }

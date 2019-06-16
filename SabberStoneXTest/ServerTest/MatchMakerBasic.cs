@@ -22,7 +22,7 @@ namespace SabberStoneXTest.ServerTest
         }
 
         [Fact]
-        public void MatchMakerTest()
+        public async void MatchMakerTest()
         {
             _server.Start();
 
@@ -37,6 +37,21 @@ namespace SabberStoneXTest.ServerTest
             Assert.True(reply11.RequestState);
             Assert.Equal(10000, reply11.SessionId);
 
+            // init client1
+            using (var call = client1.GameServerChannel(headers: new Metadata { new Metadata.Entry("token", reply11.SessionToken) }))
+            {
+                await call.RequestStream.WriteAsync(new GameServerStream
+                {
+                    MessageType = MessageType.Initialisation,
+                    Message = string.Empty
+                });
+
+                Assert.True(await call.ResponseStream.MoveNext());
+                Assert.Equal(MessageType.Initialisation, call.ResponseStream.Current.MessageType);
+                Assert.True(call.ResponseStream.Current.MessageState);
+            }
+
+            // queue client1
             var reply12 = client1.GameQueue(
                 new QueueRequest
                 {
@@ -50,7 +65,6 @@ namespace SabberStoneXTest.ServerTest
 
             Assert.True(reply12.RequestState);
 
-
             var channel2 = new Channel(_target, ChannelCredentials.Insecure);
             Assert.Equal(ChannelState.Idle, channel2.State);
 
@@ -62,6 +76,21 @@ namespace SabberStoneXTest.ServerTest
             Assert.True(reply21.RequestState);
             Assert.Equal(10001, reply21.SessionId);
 
+            // init client2
+            using (var call = client2.GameServerChannel(headers: new Metadata { new Metadata.Entry("token", reply21.SessionToken) }))
+            {
+                await call.RequestStream.WriteAsync(new GameServerStream
+                {
+                    MessageType = MessageType.Initialisation,
+                    Message = string.Empty
+                });
+
+                Assert.True(await call.ResponseStream.MoveNext());
+                Assert.Equal(MessageType.Initialisation, call.ResponseStream.Current.MessageType);
+                Assert.True(call.ResponseStream.Current.MessageState);
+            }
+
+            // queue client2
             var reply22 = client2.GameQueue(
                 new QueueRequest
                 {

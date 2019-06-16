@@ -62,7 +62,7 @@ namespace SabberStoneXTest.ServerTest
         }
 
         [Fact]
-        public void GameQueueRequest()
+        public async void GameQueueRequest()
         {
             _server.Start();
 
@@ -77,6 +77,21 @@ namespace SabberStoneXTest.ServerTest
             Assert.True(reply1.RequestState);
             Assert.Equal(10000, reply1.SessionId);
 
+            // Initialisation
+            using (var call = client1.GameServerChannel(headers: new Metadata { new Metadata.Entry("token", reply1.SessionToken) }))
+            {
+                await call.RequestStream.WriteAsync(new GameServerStream
+                {
+                    MessageType = MessageType.Initialisation,
+                    Message = string.Empty
+                });
+
+                Assert.True(await call.ResponseStream.MoveNext());
+                Assert.Equal(MessageType.Initialisation, call.ResponseStream.Current.MessageType);
+                Assert.True(call.ResponseStream.Current.MessageState);
+            }
+
+            // GameQueue
             var reply2 = client1.GameQueue(
                 new QueueRequest
                 {
@@ -113,11 +128,13 @@ namespace SabberStoneXTest.ServerTest
             {
                 await call.RequestStream.WriteAsync(new GameServerStream
                 {
-                    Message = "testing"
+                    MessageType = MessageType.Initialisation,
+                    Message = string.Empty
                 });
 
                 Assert.True(await call.ResponseStream.MoveNext());
-                Assert.Equal("testing ... ECHO", call.ResponseStream.Current.Message);
+                Assert.Equal(MessageType.Initialisation, call.ResponseStream.Current.MessageType);
+                Assert.True(call.ResponseStream.Current.MessageState);
             }
 
             _server.Stop();

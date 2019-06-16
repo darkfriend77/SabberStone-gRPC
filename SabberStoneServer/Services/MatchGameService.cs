@@ -1,4 +1,5 @@
 ﻿using log4net;
+using Newtonsoft.Json;
 using SabberStoneContract.Model;
 using SabberStoneCore.Config;
 using SabberStoneCore.Enums;
@@ -45,7 +46,7 @@ namespace SabberStoneServer.Services
 
         private readonly string _token;
 
-//        private UserDataInfo UserById(int id) => Player1.Id == id ? Player1 : Player2.Id == id ? Player2 : null;
+        //        private UserDataInfo UserById(int id) => Player1.Id == id ? Player1 : Player2.Id == id ? Player2 : null;
 
         public bool IsFinished => Player1.PlayerState == PlayerState.Quit && Player2.PlayerState == PlayerState.Quit;
 
@@ -69,11 +70,21 @@ namespace SabberStoneServer.Services
         {
             // game invitation request for player 1
             Player1.PlayerState = PlayerState.Invitation;
-//            Player1.Connection.Send(DataPacketBuilder.RequestServerGameInvitation(_id, _token, GameId, 1));
+            Player1.ResponseStream.WriteAsync(new GameServerStream()
+            {
+                MessageType = MessageType.Invitation,
+                MessageState = true,
+                Message = JsonConvert.SerializeObject(new GameData() { GameId = GameId, PlayerId = 1, GameDataType = GameDataType.None })
+            }); ;
 
             // game invitation request for player 2
             Player2.PlayerState = PlayerState.Invitation;
-//            Player2.Connection.Send(DataPacketBuilder.RequestServerGameInvitation(_id, _token, GameId, 2));
+            Player2.ResponseStream.WriteAsync(new GameServerStream()
+            {
+                MessageType = MessageType.Invitation,
+                MessageState = true,
+                Message = JsonConvert.SerializeObject(new GameData() { GameId = GameId, PlayerId = 2, GameDataType = GameDataType.None })
+            });
         }
 
         public void Start()
@@ -132,7 +143,7 @@ namespace SabberStoneServer.Services
 
         private void ProcessPowerOptionsData(int playerId, UserDataInfo userDataInfo, PowerAllOptions allOptions)
         {
-//            userDataInfo.Connection.Send(DataPacketBuilder.RequestServerGamePowerOptions(_id, _token, GameId, playerId, allOptions.Index, allOptions.PowerOptionList));
+            //            userDataInfo.Connection.Send(DataPacketBuilder.RequestServerGamePowerOptions(_id, _token, GameId, playerId, allOptions.Index, allOptions.PowerOptionList));
         }
 
         private void ProcessPowerHistoryData(int playerId, UserDataInfo userDataInfo, List<IPowerHistoryEntry> powerHistoryLast)
@@ -144,9 +155,9 @@ namespace SabberStoneServer.Services
                 var count = powerHistoryLast.Count - i > batchSize ? batchSize : powerHistoryLast.Count - i;
                 var batch = powerHistoryLast.GetRange(i, count);
                 //userInfoData.Connection.Send(DataPacketBuilder.RequestServerGamePowerHistoryX(_id, "matchgame", _gameId, playerId, batch));
-//                var buffer = DataPacketBuilder.RequestServerGamePowerHistory(_id, "matchgame", GameId, playerId, batch);
-//                Log.Info($"BufferSize sending: {buffer.Length}");
-//                userDataInfo.Connection.Send(buffer);
+                //                var buffer = DataPacketBuilder.RequestServerGamePowerHistory(_id, "matchgame", GameId, playerId, batch);
+                //                Log.Info($"BufferSize sending: {buffer.Length}");
+                //                userDataInfo.Connection.Send(buffer);
                 i += count;
                 Thread.Sleep(100);
             }
@@ -162,8 +173,8 @@ namespace SabberStoneServer.Services
             // stop game for both players now!
             Log.Warn($"[_gameId:{GameId}] should be stopped here, isn't implemented!!!");
 
-//            Player1.Connection.Send(DataPacketBuilder.RequestServerGameStop(_id, _token, GameId, _game.Player1.PlayState, _game.Player2.PlayState));
-//            Player2.Connection.Send(DataPacketBuilder.RequestServerGameStop(_id, _token, GameId, _game.Player1.PlayState, _game.Player2.PlayState));
+            //            Player1.Connection.Send(DataPacketBuilder.RequestServerGameStop(_id, _token, GameId, _game.Player1.PlayState, _game.Player2.PlayState));
+            //            Player2.Connection.Send(DataPacketBuilder.RequestServerGameStop(_id, _token, GameId, _game.Player1.PlayState, _game.Player2.PlayState));
         }
 
         //public void ProcessGameResponse(int dataPacketId, string dataPacketToken, GameResponse gameResponse)
