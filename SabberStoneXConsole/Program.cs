@@ -1,4 +1,5 @@
 ﻿using Grpc.Core;
+using SabberStoneClient;
 using SabberStoneServer.Core;
 using System;
 using System.Threading;
@@ -10,36 +11,49 @@ namespace SabberStoneXConsole
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            //Console.WriteLine("Hello World!");
+
+            //var port = 50051;
+            //var target = $"127.0.0.1:{port}";
+
+            //var server = new GameServer();
+            //server.Start();
+
+            //Task clientA = CreateClientTask(target, new GameServerStream()
+            //{
+            //    Message = "testing"
+            //}, 250);
+
+            //Task clientB = CreateClientTask(target, new GameServerStream()
+            //{
+            //    Message = "lying"
+            //}, 500);
+
+            //Task clientC = CreateClientTask(target, new GameServerStream()
+            //{
+            //    Message = "sabber"
+            //}, 750);
+
+            //while(!clientA.IsCompleted || !clientB.IsCompleted || !clientC.IsCompleted)
+            //{
+            //    Thread.Sleep(1000);
+            //}
+
+            //server.Stop();
+            //Console.ReadKey();
 
             var port = 50051;
             var target = $"127.0.0.1:{port}";
 
-            var server = new GameServer();
+            GameServer server = new GameServer(port);
             server.Start();
 
-            Task clientA = CreateClientTask(target, new GameServerStream()
-            {
-                Message = "testing"
-            }, 250);
+            GameClient client = new GameClient(port);
+            client.Connect();
+            client.Register("Test", "");
 
-            Task clientB = CreateClientTask(target, new GameServerStream()
-            {
-                Message = "lying"
-            }, 500);
-
-            Task clientC = CreateClientTask(target, new GameServerStream()
-            {
-                Message = "sabber"
-            }, 750);
-
-            while(!clientA.IsCompleted || !clientB.IsCompleted || !clientC.IsCompleted)
-            {
-                Thread.Sleep(1000);
-            }
-
-            server.Stop();
             Console.ReadKey();
+
         }
 
         private static int index = 1;

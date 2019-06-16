@@ -89,6 +89,8 @@ namespace SabberStoneServer.Services
                 return Task.FromResult(new AuthReply { RequestState = false });
             }
 
+            Log.Info($"Successfully registred user with account {request.AccountName}!");
+
             var reply = new AuthReply
             {
                 RequestState = true,

@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using static GameServerService;
 
 namespace SabberStoneClient
@@ -13,7 +15,7 @@ namespace SabberStoneClient
     {
         private static readonly ILog Log = Logger.Instance.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private int _port = 50052;
+        private int _port;
 
         private string _target;
 
@@ -27,8 +29,9 @@ namespace SabberStoneClient
 
         private string _sessionToken;
 
-        public GameClient()
+        public GameClient(int port)
         {
+            _port = port;
             _target = $"127.0.0.1:{_port}";
             _gameClientState = GameClientState.None;
         }
@@ -59,10 +62,36 @@ namespace SabberStoneClient
             _sessionId = authReply.SessionId;
             _sessionToken = authReply.SessionToken;
 
-
-
-
             _gameClientState = GameClientState.Registred;
+        }
+
+        public async void GameServerChannel()
+        {
+            using (var call = _client.GameServerChannel(headers: new Metadata { new Metadata.Entry("token", _sessionToken) }))
+            {
+                // listen to game server
+                var response = Task.Run(async () =>
+                {
+                    while (await call.ResponseStream.MoveNext(CancellationToken.None))
+                    {
+                        ProcessChannelMessage(call.ResponseStream.Current);
+                    };
+                });
+
+                await call.RequestStream.WriteAsync(new GameServerStream
+                {
+                    MessageType = MessageType.Initialisation,
+                    Message = string.Empty
+                });
+
+
+
+            }
+        }
+
+        private void ProcessChannelMessage(GameServerStream current)
+        {
+            Log.Info($"ProcessChannelMessage[{current.MessageState},{current.MessageType}]:{current.Message}");
         }
 
         public void Queue(GameType gameType = GameType.Normal, DeckType deckType = DeckType.Random, string deckData = null)
