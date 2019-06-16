@@ -46,7 +46,7 @@ namespace SabberStoneServer.Services
 
         private readonly string _token;
 
-        //        private UserDataInfo UserById(int id) => Player1.Id == id ? Player1 : Player2.Id == id ? Player2 : null;
+        private UserDataInfo UserById(int id) => Player1.PlayerId == id ? Player1 : Player2.PlayerId == id ? Player2 : null;
 
         public bool IsFinished => Player1.PlayerState == PlayerState.Quit && Player2.PlayerState == PlayerState.Quit;
 
@@ -55,9 +55,15 @@ namespace SabberStoneServer.Services
             _gameServerService = gameServerService;
             _random = new Random();
             GameId = index;
+
             Player1 = player1;
+            Player1.GameId = GameId;
+            Player1.PlayerId = 1;
             Player1.PlayerState = PlayerState.None;
+
             Player2 = player2;
+            Player2.GameId = GameId;
+            Player2.PlayerId = 2;
             Player2.PlayerState = PlayerState.None;
 
             _id = 2;
@@ -70,21 +76,53 @@ namespace SabberStoneServer.Services
         {
             // game invitation request for player 1
             Player1.PlayerState = PlayerState.Invitation;
-            Player1.ResponseStream.WriteAsync(new GameServerStream()
-            {
-                MessageType = MessageType.Invitation,
-                MessageState = true,
-                Message = JsonConvert.SerializeObject(new GameData() { GameId = GameId, PlayerId = 1, GameDataType = GameDataType.None })
-            }); ;
+            SendGameData(Player1, MessageType.Invitation, true, GameDataType.None);
 
             // game invitation request for player 2
             Player2.PlayerState = PlayerState.Invitation;
-            Player2.ResponseStream.WriteAsync(new GameServerStream()
+            SendGameData(Player2, MessageType.Invitation, true, GameDataType.None);
+        }
+
+        public void SendGameData(UserDataInfo player, MessageType messageType, bool messageState, GameDataType gameDataType, string gameDataObject = "")
+        {
+            player.ResponseStream.WriteAsync(new GameServerStream()
             {
-                MessageType = MessageType.Invitation,
-                MessageState = true,
-                Message = JsonConvert.SerializeObject(new GameData() { GameId = GameId, PlayerId = 2, GameDataType = GameDataType.None })
+                MessageType = messageType,
+                MessageState = messageState,
+                Message = JsonConvert.SerializeObject(new GameData() { GameId = GameId, PlayerId = player.PlayerId, GameDataType = gameDataType, GameDataObject = gameDataObject })
             });
+        }
+
+        internal void InvitationReply(bool state, GameData gameData)
+        {
+            if (!state)
+            {
+                Stop();
+                return;
+            }
+
+            var userInfoData = UserById(gameData.PlayerId);
+            userInfoData.UserState = UserState.InGame;
+
+            if (Player1.UserState == UserState.InGame && Player2.UserState == UserState.InGame)
+            {
+                SendGameData(Player1, MessageType.InGame, true, GameDataType.None);
+                SendGameData(Player2, MessageType.InGame, true, GameDataType.None);
+                Thread.Sleep(500);
+                Start();
+            }
+        }
+
+        internal void ProcessGameData(GameData gameData)
+        {
+            var userInfoData = UserById(gameData.PlayerId);
+
+            if (userInfoData == null)
+            {
+                Stop();
+                return;
+            }
+
         }
 
         public void Start()

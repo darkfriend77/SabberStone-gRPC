@@ -38,6 +38,7 @@ namespace SabberStoneContract.Model
         public virtual DeckType DeckType { get; set; }
         public virtual string DeckData { get; set; }
         public virtual PlayerState PlayerState { get; set; }
+        public virtual int PlayerId { get; set; }
     }
 
     public enum GameDataType
@@ -50,5 +51,6 @@ namespace SabberStoneContract.Model
         public virtual int GameId { get; set; }
         public virtual int PlayerId { get; set; }
         public virtual GameDataType GameDataType { get; set; }
+        public virtual string GameDataObject { get; set; }
     }
 }

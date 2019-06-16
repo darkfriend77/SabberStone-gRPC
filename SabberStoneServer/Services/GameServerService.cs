@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 using log4net;
+using Newtonsoft.Json;
 using SabberStoneContract.Model;
 using SabberStoneServer.Core;
 
@@ -16,6 +17,8 @@ namespace SabberStoneServer.Services
     public class GameServerServiceImpl : GameServerService.GameServerServiceBase
     {
         private static readonly ILog Log = Logger.Instance.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
+        public Action<MessageType, bool, GameData> ProcessGameData { get; internal set; }
 
         private int _index = 10000;
         public int NextSessionIndex => _index++;
@@ -78,7 +81,8 @@ namespace SabberStoneServer.Services
                 GameId = -1,
                 DeckType = DeckType.None,
                 DeckData = string.Empty,
-                PlayerState = PlayerState.None
+                PlayerState = PlayerState.None,
+                PlayerId = -1
             };
 
 
@@ -137,7 +141,11 @@ namespace SabberStoneServer.Services
                 while (await requestStream.MoveNext(CancellationToken.None))
                 {
                     var response = ProcessRequest(clientTokenValue, requestStream.Current);
-                    await responseStream.WriteAsync(response);
+
+                    if (response != null)
+                    {
+                        await responseStream.WriteAsync(response);
+                    }
                 }
             });
 
@@ -151,6 +159,9 @@ namespace SabberStoneServer.Services
             {
                 case MessageType.Initialisation:
                     return new GameServerStream() { MessageType = MessageType.Initialisation, MessageState = true, Message = string.Empty };
+                case MessageType.Invitation:
+                    ProcessGameData(current.MessageType, current.MessageState, JsonConvert.DeserializeObject<GameData>(current.Message));
+                    return null;
                 default:
                     return new GameServerStream() { MessageType = MessageType.Initialisation, MessageState = false, Message = string.Empty };
             }

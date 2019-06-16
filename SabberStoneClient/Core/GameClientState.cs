@@ -2,7 +2,10 @@
 {
     public enum GameClientState
     {
-        None, Connected, Registred,
-        Queued
+        None,
+        Connected,
+        Registred,
+        Queued,
+        InGame
     }
 }

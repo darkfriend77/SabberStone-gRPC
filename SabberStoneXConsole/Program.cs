@@ -43,51 +43,89 @@ namespace SabberStoneXConsole
             //Console.ReadKey();
 
             var port = 50051;
-            var target = $"127.0.0.1:{port}";
 
             GameServer server = new GameServer(port);
             server.Start();
 
-            GameClient client = new GameClient(port);
-            client.Connect();
-            client.Register("Test", "");
+            var matchMaker = server.GetMatchMakerService();
+            matchMaker.Start(7);
 
-            Console.ReadKey();
+            Task clientA = CreateGameClientTask(port, "Test1", "");
+            Thread.Sleep(1000);
 
-        }
+            Task clientB = CreateGameClientTask(port, "Test2", "");
+            Thread.Sleep(1000);
 
-        private static int index = 1;
-
-        private static async Task CreateClientTask(string target, GameServerStream gameServerStream, int sleepMs)
-        {
-            var channel = new Channel(target, ChannelCredentials.Insecure);
-            var client = new GameServerService.GameServerServiceClient(channel);
-
-            // authentificate
-            var reply1 = client.Authentication(new AuthRequest { AccountName = $"Test::{index++}", AccountPsw = string.Empty });
-
-            using (var call = client.GameServerChannel(headers: new Metadata { new Metadata.Entry("token", reply1.SessionToken) }))
+            while (!clientA.IsCompleted || !clientB.IsCompleted)
             {
-                var request = Task.Run(async () =>
-                {
-                    for (int i = 0; i < 10; i++)
-                    {
-                        Thread.Sleep(sleepMs);
-                        await call.RequestStream.WriteAsync(gameServerStream);
-                    }
-                });
-                var response = Task.Run(async () =>
-                {
-                    while (await call.ResponseStream.MoveNext(CancellationToken.None))
-                    {
-                        Console.WriteLine($"{call.ResponseStream.Current.Message}");
-                    };
-                });
-
-                await request;
-                //await response;
+                Console.WriteLine("waiting...");
+                Thread.Sleep(1000);
             }
 
+            server.Stop();
+            Console.ReadKey();
         }
+
+        private static async Task CreateGameClientTask(int port, string accountName, string accountpsw)
+        {
+            GameClient client = new GameClient(port);
+
+            client.Connect();
+
+            client.Register(accountName, accountpsw);
+
+            Thread.Sleep(2000);
+
+            if (client.GameClientState == GameClientState.Registred)
+            {
+                client.Queue();
+            }
+
+            var waiter = Task.Run(async () =>
+            {
+                while (client.GameClientState != GameClientState.None)
+                {
+                    Thread.Sleep(2000);
+                };
+                await client.Disconnect();
+            });
+
+            await waiter;
+        }
+
+
+        //private static int index = 1;
+
+        //private static async Task CreateClientTask(string target, GameServerStream gameServerStream, int sleepMs)
+        //{
+        //    var channel = new Channel(target, ChannelCredentials.Insecure);
+        //    var client = new GameServerService.GameServerServiceClient(channel);
+
+        //    // authentificate
+        //    var reply1 = client.Authentication(new AuthRequest { AccountName = $"Test::{index++}", AccountPsw = string.Empty });
+
+        //    using (var call = client.GameServerChannel(headers: new Metadata { new Metadata.Entry("token", reply1.SessionToken) }))
+        //    {
+        //        var request = Task.Run(async () =>
+        //        {
+        //            for (int i = 0; i < 10; i++)
+        //            {
+        //                Thread.Sleep(sleepMs);
+        //                await call.RequestStream.WriteAsync(gameServerStream);
+        //            }
+        //        });
+        //        var response = Task.Run(async () =>
+        //        {
+        //            while (await call.ResponseStream.MoveNext(CancellationToken.None))
+        //            {
+        //                Console.WriteLine($"{call.ResponseStream.Current.Message}");
+        //            };
+        //        });
+
+        //        await request;
+        //        //await response;
+        //    }
+
+        //}
     }
 }

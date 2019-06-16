@@ -29,9 +29,9 @@ enum DeckType
 
 enum MessageType
 {
-	BadRequest = 0;
-	Initialisation = 1;
-	Invitation = 2;
+	Initialisation = 0;
+	Invitation = 1;
+	InGame = 2;
 }
 
 message PingRequest {
