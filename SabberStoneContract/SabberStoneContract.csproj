@@ -5,12 +5,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="lib\**" />
-    <EmbeddedResource Remove="lib\**" />
-    <None Remove="lib\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.7.0" />
     <PackageReference Include="Grpc" Version="1.20.1" />
     <PackageReference Include="Grpc.Tools" Version="1.20.1" PrivateAssets="All" />
@@ -20,6 +14,25 @@
   <ItemGroup>
     <Protobuf Include="Contracts\TestgRPC.proto" Link="TestgRPC.proto" />
     <Protobuf Include="Contracts\GameServer.proto" Link="GameServer.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="lib\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="SabberStoneCore">
+      <HintPath>lib\SabberStoneCore.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Buffers">
+      <HintPath>lib\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Memory">
+      <HintPath>lib\System.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe">
+      <HintPath>lib\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

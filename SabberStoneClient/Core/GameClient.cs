@@ -7,6 +7,7 @@ using SabberStoneCore.Kettle;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -41,13 +42,20 @@ namespace SabberStoneClient
 
         private int _playerId;
 
+        private bool _isBot;
+
+        private Random _random;
+
         public ConcurrentQueue<IPowerHistoryEntry> HistoryEntries { get; }
 
         public List<PowerOption> PowerOptionList { get; private set; }
 
-        public GameClient(int port)
+        public GameClient(int port, bool isBot = false)
         {
             _port = port;
+            _isBot = isBot;
+            _random = new Random();
+
             _target = $"127.0.0.1:{_port}";
             SetClientState(_gameClientState = GameClientState.None);
 
@@ -144,14 +152,21 @@ namespace SabberStoneClient
 
         private void ProcessChannelMessage(GameServerStream current)
         {
-            Log.Warn($"ProcessChannelMessage[{current.MessageState},{current.MessageType}]: '{(current.Message.Length > 100 ? current.Message.Substring(0, 100) + "..." : current.Message)}'");
+            Log.Info($"Message[{current.MessageState},{current.MessageType}]: received.");
 
             if (!current.MessageState)
             {
                 Log.Warn($"Failed messageType {current.MessageType}, '{current.Message}'!");
                 return;
             }
+
             GameData gameData = null;
+            if (current.Message != string.Empty)
+            {
+                gameData = JsonConvert.DeserializeObject<GameData>(current.Message);
+                Log.Info($"GameData[Id:{gameData.GameId},Player:{gameData.PlayerId}]: {gameData.GameDataType} received");
+            }
+
             switch (current.MessageType)
             {
                 case MessageType.Initialisation:
@@ -159,7 +174,6 @@ namespace SabberStoneClient
                     break;
 
                 case MessageType.Invitation:
-                    gameData = JsonConvert.DeserializeObject<GameData>(current.Message);
                     _gameId = gameData.GameId;
                     _playerId = gameData.PlayerId;
 
@@ -167,7 +181,6 @@ namespace SabberStoneClient
                     break;
 
                 case MessageType.InGame:
-                    gameData = JsonConvert.DeserializeObject<GameData>(current.Message);
                     switch (gameData.GameDataType)
                     {
                         case GameDataType.None:
@@ -177,6 +190,31 @@ namespace SabberStoneClient
                         case GameDataType.PowerHistory:
                             List<IPowerHistoryEntry> powerHistoryEntries = JsonConvert.DeserializeObject<List<IPowerHistoryEntry>>(gameData.GameDataObject, new PowerHistoryConverter());
                             powerHistoryEntries.ForEach(p => HistoryEntries.Enqueue(p));
+                            break;
+
+                        case GameDataType.PowerOptions:
+                            var powerOptions = JsonConvert.DeserializeObject<PowerOptions>(gameData.GameDataObject);
+                            if (powerOptions.PowerOptionList != null &&
+                                powerOptions.PowerOptionList.Count > 0)
+                            {
+                                PowerOptionList = powerOptions.PowerOptionList;
+                                if (_isBot)
+                                {
+                                    var powerOptionId = _random.Next(PowerOptionList.Count);
+                                    var powerOption = PowerOptionList.ElementAt(powerOptionId);
+                                    var target = powerOption.MainOption?.Targets != null && powerOption.MainOption.Targets.Count > 0
+                                        ? powerOption.MainOption.Targets.ElementAt(_random.Next(powerOption.MainOption.Targets.Count))
+                                        : 0;
+                                    var subOption = powerOption.SubOptions != null && powerOption.SubOptions.Count > 0
+                                        ? _random.Next(powerOption.SubOptions.Count)
+                                        : 0;
+                                    var powerOptionChoice = JsonConvert.SerializeObject(new PowerOptionChoice() { PowerOption = powerOption, Target = target, Position = 0, SubOption = subOption});
+                                    WriteGameData(MessageType.InGame, true, new GameData() { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.PowerOptions, GameDataObject = powerOptionChoice });
+                                    Log.Info($"target:{target}, position:0, suboption: {subOption} {powerOption.Print()}");
+                                    PowerOptionList.Clear();
+                                }
+                                break;
+                            }
                             break;
                     }
                     break;

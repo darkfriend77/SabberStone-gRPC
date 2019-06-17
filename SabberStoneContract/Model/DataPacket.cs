@@ -1,4 +1,5 @@
 ﻿using Grpc.Core;
+using SabberStoneCore.Kettle;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -44,7 +45,10 @@ namespace SabberStoneContract.Model
     public enum GameDataType
     {
         None,
-        PowerHistory
+        PowerHistory,
+        PowerOptions,
+        PowerChoices,
+        Concede
     }
 
     public class GameData
@@ -53,5 +57,19 @@ namespace SabberStoneContract.Model
         public virtual int PlayerId { get; set; }
         public virtual GameDataType GameDataType { get; set; }
         public virtual string GameDataObject { get; set; }
+    }
+
+    public class PowerOptions
+    {
+        public virtual int Index { get; set; }
+        public virtual List<PowerOption> PowerOptionList { get; set; }
+    }
+
+    public class PowerOptionChoice
+    {
+        public virtual PowerOption PowerOption { get; set; }
+        public virtual int Target { get; set; }
+        public virtual int Position { get; set; }
+        public virtual int SubOption { get; set; }
     }
 }

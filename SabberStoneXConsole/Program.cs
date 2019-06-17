@@ -58,8 +58,8 @@ namespace SabberStoneXConsole
 
             while (!clientA.IsCompleted || !clientB.IsCompleted)
             {
-                Console.WriteLine("waiting...");
-                Thread.Sleep(1000);
+                //Console.WriteLine("waiting...");
+                Thread.Sleep(5000);
             }
 
             server.Stop();
@@ -68,7 +68,7 @@ namespace SabberStoneXConsole
 
         private static async Task CreateGameClientTask(int port, string accountName, string accountpsw)
         {
-            GameClient client = new GameClient(port);
+            GameClient client = new GameClient(port, true);
 
             client.Connect();
 

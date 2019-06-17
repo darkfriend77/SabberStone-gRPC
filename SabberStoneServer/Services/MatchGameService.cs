@@ -83,14 +83,38 @@ namespace SabberStoneServer.Services
             SendGameData(Player2, MessageType.Invitation, true, GameDataType.None);
         }
 
-        public void SendGameData(UserDataInfo player, MessageType messageType, bool messageState, GameDataType gameDataType, string gameDataObject = "")
+        public void Start()
         {
-            player.ResponseStream.WriteAsync(new GameServerStream()
+            Log.Info($"[_gameId:{GameId}] Game creation is happening in a few seconds!!!");
+            var newGame = new Game(new GameConfig
             {
-                MessageType = messageType,
-                MessageState = messageState,
-                Message = JsonConvert.SerializeObject(new GameData() { GameId = GameId, PlayerId = player.PlayerId, GameDataType = gameDataType, GameDataObject = gameDataObject })
+                //StartPlayer = 1,
+                FormatType = FormatType.FT_STANDARD,
+                Player1HeroClass = Cards.HeroClasses[_random.Next(9)],
+                Player1Deck = new List<Card>(),
+                Player2HeroClass = Cards.HeroClasses[_random.Next(9)],
+                Player2Deck = new List<Card>(),
+                SkipMulligan = true,
+                Shuffle = true,
+                FillDecks = true,
+                Logging = true,
+                History = true
             });
+
+            // don't start when game is null
+            if (_game != null)
+            {
+                return;
+            }
+
+            _game = newGame;
+
+            Log.Info($"[_gameId:{GameId}] Game creation done!");
+            _game.StartGame();
+
+            SendPowerHistoryToPlayers();
+
+            SendPowerOptionsToPlayers();
         }
 
         internal void InvitationReply(bool state, GameData gameData)
@@ -123,88 +147,69 @@ namespace SabberStoneServer.Services
                 return;
             }
 
+            switch (gameData.GameDataType)
+            {
+                case GameDataType.PowerOptions:
+                    var powerOptionChoice = JsonConvert.DeserializeObject<PowerOptionChoice>(gameData.GameDataObject);
+                    var task = ProcessPowerOptionsData(powerOptionChoice.PowerOption, powerOptionChoice.Target, powerOptionChoice.Position, powerOptionChoice.SubOption);
+                    _game.Process(task);
+
+                    SendPowerHistoryToPlayers();
+
+                    if (_game.State == State.RUNNING)
+                    {
+                        SendPowerOptionsToPlayers();
+                    }
+                    else
+                    {
+                        Stop();
+                    }
+                    break;
+
+                case GameDataType.PowerChoices:
+                    break;
+
+                case GameDataType.Concede:
+                    break;
+
+                default:
+                    break;
+            }
         }
 
-        public void Start()
+        public void SendPowerHistoryToPlayers()
         {
-            Log.Info($"[_gameId:{GameId}] Game creation is happening in a few seconds!!!");
-            var newGame = new Game(new GameConfig
-            {
-                //StartPlayer = 1,
-                FormatType = FormatType.FT_STANDARD,
-                Player1HeroClass = Cards.HeroClasses[_random.Next(9)],
-                Player1Deck = new List<Card>(),
-                Player2HeroClass = Cards.HeroClasses[_random.Next(9)],
-                Player2Deck = new List<Card>(),
-                SkipMulligan = true,
-                Shuffle = true,
-                FillDecks = true,
-                Logging = true,
-                History = true
-            });
-
-            // don't start when game is null
-            if (_game != null)
-            {
-                return;
-            }
-
-            _game = newGame;
-            Log.Info($"[_gameId:{GameId}] Game creation done!");
-            _game.StartGame();
-
+            // send player history to both players
             string powerHistory = JsonConvert.SerializeObject(_game.PowerHistory.Last);
             SendGameData(Player1, MessageType.InGame, true, GameDataType.PowerHistory, powerHistory);
             SendGameData(Player2, MessageType.InGame, true, GameDataType.PowerHistory, powerHistory);
-
-            //SendPowerOptionsToPlayers();
+            Thread.Sleep(500);
         }
 
-        private void SendPowerOptionsToPlayers()
+        public void SendPowerOptionsToPlayers()
         {
-            _powerAllOptionsPlayer1 = PowerOptionsBuilder.AllOptions(_game, _game.Player1.Options());
-            ProcessPowerOptionsData(1, Player1, _powerAllOptionsPlayer1);
-
-            _powerAllOptionsPlayer2 = PowerOptionsBuilder.AllOptions(_game, _game.Player2.Options());
-            ProcessPowerOptionsData(2, Player2, _powerAllOptionsPlayer2);
+            var allOptionsPlayer1 = PowerOptionsBuilder.AllOptions(_game, _game.Player1.Options());
+            SendGameData(Player1, MessageType.InGame, true, GameDataType.PowerOptions, JsonConvert.SerializeObject(new PowerOptions() { Index = allOptionsPlayer1.Index, PowerOptionList = allOptionsPlayer1.PowerOptionList }));
+            var allOptionsPlayer2 = PowerOptionsBuilder.AllOptions(_game, _game.Player2.Options());
+            SendGameData(Player2, MessageType.InGame, true, GameDataType.PowerOptions, JsonConvert.SerializeObject(new PowerOptions() { Index = allOptionsPlayer2.Index, PowerOptionList = allOptionsPlayer2.PowerOptionList }));
+            Thread.Sleep(500);
         }
 
-        //TODO ...
         private void SendPowerChoicesToPlayers()
         {
-            var _powerChoicessPlayer1 = PowerChoicesBuilder.EntityChoices(_game, _game.Player1.Choice);
-            //ProcessPowerOptionsData(1, Player1, _powerAllOptionsPlayer1);
-
-            var _powerChoicessPlayer2 = PowerChoicesBuilder.EntityChoices(_game, _game.Player2.Choice);
-            //ProcessPowerOptionsData(2, Player2, _powerAllOptionsPlayer2);
+            SendGameData(Player1, MessageType.InGame, true, GameDataType.PowerChoices, JsonConvert.SerializeObject(PowerChoicesBuilder.EntityChoices(_game, _game.Player1.Choice)));
+            SendGameData(Player2, MessageType.InGame, true, GameDataType.PowerChoices, JsonConvert.SerializeObject(PowerChoicesBuilder.EntityChoices(_game, _game.Player2.Choice)));
+            Thread.Sleep(500);
         }
 
-
-        private void ProcessPowerOptionsData(int playerId, UserDataInfo userDataInfo, PowerAllOptions allOptions)
+        public void SendGameData(UserDataInfo player, MessageType messageType, bool messageState, GameDataType gameDataType, string gameDataObject = "")
         {
-            //            userDataInfo.Connection.Send(DataPacketBuilder.RequestServerGamePowerOptions(_id, _token, GameId, playerId, allOptions.Index, allOptions.PowerOptionList));
-        }
-
-        private void ProcessPowerHistoryData(int playerId, UserDataInfo userDataInfo, List<IPowerHistoryEntry> powerHistoryLast)
-        {
-
-            var batchSize = 25;
-            for (var i = 0; i < powerHistoryLast.Count;)
+            player.ResponseStream.WriteAsync(new GameServerStream()
             {
-                var count = powerHistoryLast.Count - i > batchSize ? batchSize : powerHistoryLast.Count - i;
-                var batch = powerHistoryLast.GetRange(i, count);
-                //userInfoData.Connection.Send(DataPacketBuilder.RequestServerGamePowerHistoryX(_id, "matchgame", _gameId, playerId, batch));
-                //                var buffer = DataPacketBuilder.RequestServerGamePowerHistory(_id, "matchgame", GameId, playerId, batch);
-                //                Log.Info($"BufferSize sending: {buffer.Length}");
-                //                userDataInfo.Connection.Send(buffer);
-                i += count;
-                Thread.Sleep(100);
-            }
-
-
-            //var buffer = DataPacketBuilder.RequestServerGamePowerHistory(_id, "matchgame", GameId, playerId, powerHistoryLast);
-            //Log.Info($"BufferSize sending: {buffer.Length}");
-            //userInfoData.Connection.Send(buffer);
+                MessageType = messageType,
+                MessageState = messageState,
+                Message = JsonConvert.SerializeObject(new GameData() { GameId = GameId, PlayerId = player.PlayerId, GameDataType = gameDataType, GameDataObject = gameDataObject })
+            });
         }
 
         public void Stop()
@@ -215,79 +220,6 @@ namespace SabberStoneServer.Services
             //            Player1.Connection.Send(DataPacketBuilder.RequestServerGameStop(_id, _token, GameId, _game.Player1.PlayState, _game.Player2.PlayState));
             //            Player2.Connection.Send(DataPacketBuilder.RequestServerGameStop(_id, _token, GameId, _game.Player1.PlayState, _game.Player2.PlayState));
         }
-
-        //public void ProcessGameResponse(int dataPacketId, string dataPacketToken, GameResponse gameResponse)
-        //{
-        //    var userInfoData = UserById(dataPacketId);
-        //    Log.Info($"GameResponse:{gameResponse.GameResponseType} from {userInfoData?.AccountName}, {gameResponse.RequestState}");
-
-        //    if (userInfoData == null || gameResponse.RequestState != RequestState.Success)
-        //    {
-        //        Stop();
-        //        return;
-        //    }
-
-        //    switch (gameResponse.GameResponseType)
-        //    {
-        //        case GameResponseType.Invitation:
-        //            _gameServerService.ChangeUserState(userInfoData, UserState.Prepared);
-        //            userInfoData.Connection.Send(DataPacketBuilder.RequestServerGamePreparation(_id, _token, GameId));
-        //            break;
-
-        //        case GameResponseType.Preparation:
-        //            var gameResponsePreparation = JsonConvert.DeserializeObject<GameResponsePreparation>(gameResponse.GameResponseData);
-        //            userInfoData.DeckType = gameResponsePreparation.DeckType;
-        //            userInfoData.DeckData = gameResponsePreparation.DeckData;
-        //            _gameServerService.ChangeUserState(userInfoData, UserState.InGame);
-        //            if (Player1.UserState == UserState.InGame && Player2.UserState == UserState.InGame)
-        //            {
-        //                Player1.Connection.Send(DataPacketBuilder.RequestServerGameStart(_id, _token, GameId, Player1, Player2));
-        //                Player2.Connection.Send(DataPacketBuilder.RequestServerGameStart(_id, _token, GameId, Player1, Player2));
-        //                Thread.Sleep(500);
-        //                Start();
-        //            }
-        //            break;
-
-        //        case GameResponseType.PowerOption:
-        //            var gameResponsePowerOption = JsonConvert.DeserializeObject<GameResponsePowerOption>(gameResponse.GameResponseData);
-        //            var task = ProcessPowerOptionsData(gameResponsePowerOption.PowerOption, gameResponsePowerOption.Target, 0, gameResponsePowerOption.SubOption);
-        //            _game.Process(task);
-
-        //            // send player history to both players
-        //            ProcessPowerHistoryData(1, Player1, _game.PowerHistory.Last);
-        //            ProcessPowerHistoryData(2, Player2, _game.PowerHistory.Last);
-        //            Thread.Sleep(500);
-
-        //            if (_game.State == State.RUNNING)
-        //            {
-        //                SendPowerOptionsToPlayers();
-        //                Thread.Sleep(500);
-        //            }
-        //            else
-        //            {
-        //                Stop();
-        //            }
-        //            break;
-
-        //        case GameResponseType.GameStop:
-        //            var gameResponseGameStop = JsonConvert.DeserializeObject<GameResponseGameStop>(gameResponse.GameResponseData);
-        //            switch (gameResponseGameStop.PlayerId)
-        //            {
-        //                case 1:
-        //                    Player1.PlayerState = PlayerState.Quit;
-        //                    break;
-        //                case 2:
-        //                    Player2.PlayerState = PlayerState.Quit;
-        //                    break;
-        //                default:
-        //                    throw new ArgumentOutOfRangeException();
-        //            }
-        //            break;
-
-        //        default:
-        //            throw new ArgumentOutOfRangeException();
-        //    }
-        //}
 
         //public PlayerTask ProcessPowerOptionsData(int sendOptionId, int sendOptionMainOption, int sendOptionTarget, int sendOptionPosition, int sendOptionSubOption)
         public PlayerTask ProcessPowerOptionsData(PowerOption powerOption, int sendOptionTarget, int sendOptionPosition, int sendOptionSubOption)

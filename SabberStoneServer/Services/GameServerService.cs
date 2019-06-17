@@ -160,6 +160,7 @@ namespace SabberStoneServer.Services
                 case MessageType.Initialisation:
                     return new GameServerStream() { MessageType = MessageType.Initialisation, MessageState = true, Message = string.Empty };
                 case MessageType.Invitation:
+                case MessageType.InGame:
                     ProcessGameData(current.MessageType, current.MessageState, JsonConvert.DeserializeObject<GameData>(current.Message));
                     return null;
                 default:
