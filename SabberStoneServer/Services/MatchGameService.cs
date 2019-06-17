@@ -151,13 +151,19 @@ namespace SabberStoneServer.Services
             {
                 case GameDataType.PowerOptions:
                     var powerOptionChoice = JsonConvert.DeserializeObject<PowerOptionChoice>(gameData.GameDataObject);
-                    var task = ProcessPowerOptionsData(powerOptionChoice.PowerOption, powerOptionChoice.Target, powerOptionChoice.Position, powerOptionChoice.SubOption);
-                    _game.Process(task);
+                    var optionTask = ProcessPowerOptionsData(powerOptionChoice.PowerOption, powerOptionChoice.Target, powerOptionChoice.Position, powerOptionChoice.SubOption);
+                    _game.Process(optionTask);
+
+                    if (powerOptionChoice.PowerOption.OptionType == OptionType.END_TURN)
+                    {
+                        Log.Info($"State[{_game.State}]-T[{_game.Turn}] Hero1: {_game.Player1.Hero.Health} HP // Hero2: {_game.Player2.Hero.Health} HP");
+                    }
 
                     SendPowerHistoryToPlayers();
 
                     if (_game.State == State.RUNNING)
                     {
+                        SendPowerChoicesToPlayers();
                         SendPowerOptionsToPlayers();
                     }
                     else
@@ -167,6 +173,21 @@ namespace SabberStoneServer.Services
                     break;
 
                 case GameDataType.PowerChoices:
+                    var powerChoices = JsonConvert.DeserializeObject<PowerChoices>(gameData.GameDataObject);
+                    var choiceTask = ProcessPowerChoiceData(powerChoices.ChoiceType, powerChoices.Entities);
+                    _game.Process(choiceTask);
+
+                    SendPowerHistoryToPlayers();
+
+                    if (_game.State == State.RUNNING)
+                    {
+                        SendPowerChoicesToPlayers();
+                        SendPowerOptionsToPlayers();
+                    }
+                    else
+                    {
+                        Stop();
+                    }
                     break;
 
                 case GameDataType.Concede:
@@ -183,7 +204,7 @@ namespace SabberStoneServer.Services
             string powerHistory = JsonConvert.SerializeObject(_game.PowerHistory.Last);
             SendGameData(Player1, MessageType.InGame, true, GameDataType.PowerHistory, powerHistory);
             SendGameData(Player2, MessageType.InGame, true, GameDataType.PowerHistory, powerHistory);
-            Thread.Sleep(500);
+            Thread.Sleep(100);
         }
 
         public void SendPowerOptionsToPlayers()
@@ -192,14 +213,21 @@ namespace SabberStoneServer.Services
             SendGameData(Player1, MessageType.InGame, true, GameDataType.PowerOptions, JsonConvert.SerializeObject(new PowerOptions() { Index = allOptionsPlayer1.Index, PowerOptionList = allOptionsPlayer1.PowerOptionList }));
             var allOptionsPlayer2 = PowerOptionsBuilder.AllOptions(_game, _game.Player2.Options());
             SendGameData(Player2, MessageType.InGame, true, GameDataType.PowerOptions, JsonConvert.SerializeObject(new PowerOptions() { Index = allOptionsPlayer2.Index, PowerOptionList = allOptionsPlayer2.PowerOptionList }));
-            Thread.Sleep(500);
+            Thread.Sleep(100);
         }
 
         private void SendPowerChoicesToPlayers()
         {
-            SendGameData(Player1, MessageType.InGame, true, GameDataType.PowerChoices, JsonConvert.SerializeObject(PowerChoicesBuilder.EntityChoices(_game, _game.Player1.Choice)));
-            SendGameData(Player2, MessageType.InGame, true, GameDataType.PowerChoices, JsonConvert.SerializeObject(PowerChoicesBuilder.EntityChoices(_game, _game.Player2.Choice)));
-            Thread.Sleep(500);
+            if (_game.Player1.Choice != null)
+            {
+                SendGameData(Player1, MessageType.InGame, true, GameDataType.PowerChoices, JsonConvert.SerializeObject(new PowerChoices() { ChoiceType = _game.Player1.Choice.ChoiceType, Entities = _game.Player1.Choice.Choices }));
+            }
+
+            if (_game.Player2.Choice != null)
+            {
+                SendGameData(Player2, MessageType.InGame, true, GameDataType.PowerChoices, JsonConvert.SerializeObject(new PowerChoices() { ChoiceType = _game.Player2.Choice.ChoiceType, Entities = _game.Player2.Choice.Choices }));
+            }
+            Thread.Sleep(100);
         }
 
         public void SendGameData(UserDataInfo player, MessageType messageType, bool messageState, GameDataType gameDataType, string gameDataObject = "")
@@ -275,9 +303,23 @@ namespace SabberStoneServer.Services
                     throw new NotImplementedException();
             }
 
-            Log.Info($"{task?.FullPrint()}");
+            //Log.Info($"{task?.FullPrint()}");
 
             return task;
+        }
+
+        private PlayerTask ProcessPowerChoiceData(ChoiceType choiceType, List<int> entities)
+        {
+            switch (choiceType)
+            {
+                case ChoiceType.MULLIGAN:
+                    return ChooseTask.Mulligan(_game.CurrentPlayer, entities);
+
+                case ChoiceType.GENERAL:
+                    return ChooseTask.Pick(_game.CurrentPlayer, entities[0]);
+                default:
+                    return null;
+            }
         }
     }
 }
