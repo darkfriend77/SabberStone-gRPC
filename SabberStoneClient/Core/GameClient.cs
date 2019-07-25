@@ -104,7 +104,7 @@ namespace SabberStoneClient
                 // listen to game server
                 var response = Task.Run(async () =>
                 {
-                    while (await call.ResponseStream.MoveNext(CancellationToken.None))
+                    while (await call.ResponseStream.MoveNext(CancellationToken.None) &&_gameClientState != GameClientState.None)
                     {
                         ProcessChannelMessage(call.ResponseStream.Current);
                     };
@@ -138,9 +138,16 @@ namespace SabberStoneClient
             WriteGameServerStream(messageType, messageState, JsonConvert.SerializeObject(gameData));
         }
 
-        public Task Disconnect()
+        public async void Disconnect()
         {
-            return _channel.ShutdownAsync();
+            if (_writeStream != null)
+            {
+                await _writeStream.CompleteAsync();
+            }
+
+            SetClientState(GameClientState.None);
+
+            await _channel.ShutdownAsync();
         }
 
         private void SetClientState(GameClientState gameClientState)
@@ -231,6 +238,11 @@ namespace SabberStoneClient
                                 }
                                 break;
                             }
+                            break;
+
+                        case GameDataType.Result:
+                            //Log.Info($" ... ");
+                            SetClientState(GameClientState.Registred);
                             break;
                     }
                     break;

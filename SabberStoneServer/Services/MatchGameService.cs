@@ -248,6 +248,9 @@ namespace SabberStoneServer.Services
             SendGameData(Player1, MsgType.InGame, true, GameDataType.Result, "");
             SendGameData(Player2, MsgType.InGame, true, GameDataType.Result, "");
 
+            Player1.PlayerState = PlayerState.Quit;
+            Player2.PlayerState = PlayerState.Quit;
+
             //            Player1.Connection.Send(DataPacketBuilder.RequestServerGameStop(_id, _token, GameId, _game.Player1.PlayState, _game.Player2.PlayState));
             //            Player2.Connection.Send(DataPacketBuilder.RequestServerGameStop(_id, _token, GameId, _game.Player1.PlayState, _game.Player2.PlayState));
         }

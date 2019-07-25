@@ -13,7 +13,20 @@ namespace SabberStoneXConsole
     {
         static void Main(string[] args)
         {
-            RunServerWith(2);
+            RunServerWith(1);
+            //SimpleTest();
+        }
+
+        public static void SimpleTest()
+        {
+            int port = 50051;
+            GameClient client = new GameClient(port, true);
+            Console.WriteLine(client.GameClientState);
+            client.Connect();
+            Console.WriteLine(client.GameClientState);
+            client.Disconnect();
+            Console.WriteLine(client.GameClientState);
+            Console.ReadKey();
         }
 
         public static void RunServerWith(int numberOfClients)
@@ -36,7 +49,11 @@ namespace SabberStoneXConsole
 
             while (clientTasks.Any(p => !p.IsCompleted))
             {
-                //Console.WriteLine("waiting...");
+                foreach (var clientTask in clientTasks)
+                {
+                    Console.WriteLine($" ... {clientTask.IsCompleted}");  
+                }
+
                 Thread.Sleep(5000);
             }
 
@@ -50,6 +67,8 @@ namespace SabberStoneXConsole
             GameClient client = new GameClient(port, true);
 
             client.Connect();
+
+            Thread.Sleep(2000);
 
             client.Register(accountName, accountpsw);
 
@@ -68,7 +87,7 @@ namespace SabberStoneXConsole
                     Thread.Sleep(2000);
                 };
 
-                await client.Disconnect();
+                client.Disconnect();
                 Console.WriteLine($"client[{accountName}]: disconnected.");
             });
 
