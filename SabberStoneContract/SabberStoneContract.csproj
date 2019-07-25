@@ -21,9 +21,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="SabberStoneCore">
-      <HintPath>lib\SabberStoneCore.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\..\SabberStone\SabberStoneCore\SabberStoneCore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="System.Buffers">
       <HintPath>lib\System.Buffers.dll</HintPath>
     </Reference>

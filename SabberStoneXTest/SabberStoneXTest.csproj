@@ -20,9 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="SabberStoneCore">
-      <HintPath>..\SabberStoneServer\lib\SabberStoneCore.dll</HintPath>
-    </Reference>
     <Reference Include="System.Buffers">
       <HintPath>..\SabberStoneServer\lib\System.Buffers.dll</HintPath>
     </Reference>

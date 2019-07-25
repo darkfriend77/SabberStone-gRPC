@@ -1,8 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,21 +12,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SabberStoneContract\SabberStoneContract.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="SabberStoneCore">
-      <HintPath>lib\SabberStoneCore.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Buffers">
-      <HintPath>lib\System.Buffers.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Memory">
-      <HintPath>lib\System.Memory.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Runtime.CompilerServices.Unsafe">
-      <HintPath>lib\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
-    </Reference>
   </ItemGroup>
 
 </Project>
