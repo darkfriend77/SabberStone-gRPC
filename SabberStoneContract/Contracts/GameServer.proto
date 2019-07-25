@@ -27,7 +27,7 @@ enum DeckType
 	CardIds = 3;
 }
 
-enum MessageType
+enum MsgType
 {
 	Initialisation = 0;
 	Invitation = 1;
@@ -64,7 +64,7 @@ message QueueReply {
 }
 
 message GameServerStream {
-	MessageType messageType = 1;
+	MsgType messageType = 1;
 	bool messageState = 2;
 	string message = 3;
 }

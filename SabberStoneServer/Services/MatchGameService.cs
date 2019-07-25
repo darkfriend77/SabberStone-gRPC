@@ -76,11 +76,11 @@ namespace SabberStoneServer.Services
         {
             // game invitation request for player 1
             Player1.PlayerState = PlayerState.Invitation;
-            SendGameData(Player1, MessageType.Invitation, true, GameDataType.None);
+            SendGameData(Player1, MsgType.Invitation, true, GameDataType.None);
 
             // game invitation request for player 2
             Player2.PlayerState = PlayerState.Invitation;
-            SendGameData(Player2, MessageType.Invitation, true, GameDataType.None);
+            SendGameData(Player2, MsgType.Invitation, true, GameDataType.None);
         }
 
         public void Start()
@@ -130,8 +130,8 @@ namespace SabberStoneServer.Services
 
             if (Player1.UserState == UserState.InGame && Player2.UserState == UserState.InGame)
             {
-                SendGameData(Player1, MessageType.InGame, true, GameDataType.None);
-                SendGameData(Player2, MessageType.InGame, true, GameDataType.None);
+                SendGameData(Player1, MsgType.InGame, true, GameDataType.None);
+                SendGameData(Player2, MsgType.InGame, true, GameDataType.None);
                 Thread.Sleep(500);
                 Start();
             }
@@ -202,17 +202,17 @@ namespace SabberStoneServer.Services
         {
             // send player history to both players
             string powerHistory = JsonConvert.SerializeObject(_game.PowerHistory.Last);
-            SendGameData(Player1, MessageType.InGame, true, GameDataType.PowerHistory, powerHistory);
-            SendGameData(Player2, MessageType.InGame, true, GameDataType.PowerHistory, powerHistory);
+            SendGameData(Player1, MsgType.InGame, true, GameDataType.PowerHistory, powerHistory);
+            SendGameData(Player2, MsgType.InGame, true, GameDataType.PowerHistory, powerHistory);
             Thread.Sleep(100);
         }
 
         public void SendPowerOptionsToPlayers()
         {
             var allOptionsPlayer1 = PowerOptionsBuilder.AllOptions(_game, _game.Player1.Options());
-            SendGameData(Player1, MessageType.InGame, true, GameDataType.PowerOptions, JsonConvert.SerializeObject(new PowerOptions() { Index = allOptionsPlayer1.Index, PowerOptionList = allOptionsPlayer1.PowerOptionList }));
+            SendGameData(Player1, MsgType.InGame, true, GameDataType.PowerOptions, JsonConvert.SerializeObject(new PowerOptions() { Index = allOptionsPlayer1.Index, PowerOptionList = allOptionsPlayer1.PowerOptionList }));
             var allOptionsPlayer2 = PowerOptionsBuilder.AllOptions(_game, _game.Player2.Options());
-            SendGameData(Player2, MessageType.InGame, true, GameDataType.PowerOptions, JsonConvert.SerializeObject(new PowerOptions() { Index = allOptionsPlayer2.Index, PowerOptionList = allOptionsPlayer2.PowerOptionList }));
+            SendGameData(Player2, MsgType.InGame, true, GameDataType.PowerOptions, JsonConvert.SerializeObject(new PowerOptions() { Index = allOptionsPlayer2.Index, PowerOptionList = allOptionsPlayer2.PowerOptionList }));
             Thread.Sleep(100);
         }
 
@@ -220,17 +220,17 @@ namespace SabberStoneServer.Services
         {
             if (_game.Player1.Choice != null)
             {
-                SendGameData(Player1, MessageType.InGame, true, GameDataType.PowerChoices, JsonConvert.SerializeObject(new PowerChoices() { ChoiceType = _game.Player1.Choice.ChoiceType, Entities = _game.Player1.Choice.Choices }));
+                SendGameData(Player1, MsgType.InGame, true, GameDataType.PowerChoices, JsonConvert.SerializeObject(new PowerChoices() { ChoiceType = _game.Player1.Choice.ChoiceType, Entities = _game.Player1.Choice.Choices }));
             }
 
             if (_game.Player2.Choice != null)
             {
-                SendGameData(Player2, MessageType.InGame, true, GameDataType.PowerChoices, JsonConvert.SerializeObject(new PowerChoices() { ChoiceType = _game.Player2.Choice.ChoiceType, Entities = _game.Player2.Choice.Choices }));
+                SendGameData(Player2, MsgType.InGame, true, GameDataType.PowerChoices, JsonConvert.SerializeObject(new PowerChoices() { ChoiceType = _game.Player2.Choice.ChoiceType, Entities = _game.Player2.Choice.Choices }));
             }
             Thread.Sleep(100);
         }
 
-        public void SendGameData(UserDataInfo player, MessageType messageType, bool messageState, GameDataType gameDataType, string gameDataObject = "")
+        public void SendGameData(UserDataInfo player, MsgType messageType, bool messageState, GameDataType gameDataType, string gameDataObject = "")
         {
             player.ResponseStream.WriteAsync(new GameServerStream()
             {
@@ -244,6 +244,9 @@ namespace SabberStoneServer.Services
         {
             // stop game for both players now!
             Log.Warn($"[_gameId:{GameId}] should be stopped here, isn't implemented!!!");
+
+            SendGameData(Player1, MsgType.InGame, true, GameDataType.Result, "");
+            SendGameData(Player2, MsgType.InGame, true, GameDataType.Result, "");
 
             //            Player1.Connection.Send(DataPacketBuilder.RequestServerGameStop(_id, _token, GameId, _game.Player1.PlayState, _game.Player2.PlayState));
             //            Player2.Connection.Send(DataPacketBuilder.RequestServerGameStop(_id, _token, GameId, _game.Player1.PlayState, _game.Player2.PlayState));

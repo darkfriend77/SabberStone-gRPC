@@ -88,7 +88,7 @@ namespace SabberStoneServer.Services
             _timer.Change(Timeout.Infinite, Timeout.Infinite);
         }
 
-        public void ProcessGameData(MessageType messageType, bool messageState, GameData gameData)
+        public void ProcessGameData(MsgType messageType, bool messageState, GameData gameData)
         {
             if (!_matchGames.TryGetValue(gameData.GameId, out var matchGame))
             {
@@ -100,11 +100,11 @@ namespace SabberStoneServer.Services
 
             switch (messageType)
             {
-                case MessageType.Invitation:
+                case MsgType.Invitation:
                     matchGame.InvitationReply(messageState, gameData);
                     break;
 
-                case MessageType.InGame:
+                case MsgType.InGame:
                     matchGame.ProcessGameData(gameData);
                     break;
             }

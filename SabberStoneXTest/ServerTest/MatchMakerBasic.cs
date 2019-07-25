@@ -42,12 +42,12 @@ namespace SabberStoneXTest.ServerTest
             {
                 await call.RequestStream.WriteAsync(new GameServerStream
                 {
-                    MessageType = MessageType.Initialisation,
+                    MessageType = MsgType.Initialisation,
                     Message = string.Empty
                 });
 
                 Assert.True(await call.ResponseStream.MoveNext());
-                Assert.Equal(MessageType.Initialisation, call.ResponseStream.Current.MessageType);
+                Assert.Equal(MsgType.Initialisation, call.ResponseStream.Current.MessageType);
                 Assert.True(call.ResponseStream.Current.MessageState);
             }
 
@@ -81,12 +81,12 @@ namespace SabberStoneXTest.ServerTest
             {
                 await call.RequestStream.WriteAsync(new GameServerStream
                 {
-                    MessageType = MessageType.Initialisation,
+                    MessageType = MsgType.Initialisation,
                     Message = string.Empty
                 });
 
                 Assert.True(await call.ResponseStream.MoveNext());
-                Assert.Equal(MessageType.Initialisation, call.ResponseStream.Current.MessageType);
+                Assert.Equal(MsgType.Initialisation, call.ResponseStream.Current.MessageType);
                 Assert.True(call.ResponseStream.Current.MessageState);
             }
 

@@ -49,7 +49,8 @@ namespace SabberStoneContract.Model
         PowerHistory,
         PowerOptions,
         PowerChoices,
-        Concede
+        Concede,
+        Result
     }
 
     public class GameData

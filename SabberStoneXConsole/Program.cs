@@ -2,6 +2,8 @@
 using SabberStoneClient;
 using SabberStoneServer.Core;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,36 +13,11 @@ namespace SabberStoneXConsole
     {
         static void Main(string[] args)
         {
-            //Console.WriteLine("Hello World!");
+            RunServerWith(2);
+        }
 
-            //var port = 50051;
-            //var target = $"127.0.0.1:{port}";
-
-            //var server = new GameServer();
-            //server.Start();
-
-            //Task clientA = CreateClientTask(target, new GameServerStream()
-            //{
-            //    Message = "testing"
-            //}, 250);
-
-            //Task clientB = CreateClientTask(target, new GameServerStream()
-            //{
-            //    Message = "lying"
-            //}, 500);
-
-            //Task clientC = CreateClientTask(target, new GameServerStream()
-            //{
-            //    Message = "sabber"
-            //}, 750);
-
-            //while(!clientA.IsCompleted || !clientB.IsCompleted || !clientC.IsCompleted)
-            //{
-            //    Thread.Sleep(1000);
-            //}
-
-            //server.Stop();
-            //Console.ReadKey();
+        public static void RunServerWith(int numberOfClients)
+        {
 
             var port = 50051;
 
@@ -50,13 +27,14 @@ namespace SabberStoneXConsole
             var matchMaker = server.GetMatchMakerService();
             matchMaker.Start(7);
 
-            Task clientA = CreateGameClientTask(port, "Test1", "");
-            Thread.Sleep(1000);
+            List<Task> clientTasks = new List<Task>();
+            for (int i = 0; i < numberOfClients; i++)
+            {
+                clientTasks.Add(CreateGameClientTask(port, $"TestClient{i}", ""));
+                Thread.Sleep(1000);
+            }
 
-            Task clientB = CreateGameClientTask(port, "Test2", "");
-            Thread.Sleep(1000);
-
-            while (!clientA.IsCompleted || !clientB.IsCompleted)
+            while (clientTasks.Any(p => !p.IsCompleted))
             {
                 //Console.WriteLine("waiting...");
                 Thread.Sleep(5000);
@@ -64,9 +42,10 @@ namespace SabberStoneXConsole
 
             server.Stop();
             Console.ReadKey();
+
         }
 
-        private static async Task CreateGameClientTask(int port, string accountName, string accountpsw)
+        private static async Task CreateGameClientTask(int port, string accountName, string accountpsw, int numberOfGames = 0)
         {
             GameClient client = new GameClient(port, true);
 
@@ -83,11 +62,14 @@ namespace SabberStoneXConsole
 
             var waiter = Task.Run(async () =>
             {
-                while (client.GameClientState != GameClientState.None)
+                while (client.GameClientState == GameClientState.Queued
+                    || client.GameClientState == GameClientState.InGame)
                 {
                     Thread.Sleep(2000);
                 };
+
                 await client.Disconnect();
+                Console.WriteLine($"client[{accountName}]: disconnected.");
             });
 
             await waiter;

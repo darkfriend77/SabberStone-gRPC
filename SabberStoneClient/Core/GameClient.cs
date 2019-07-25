@@ -111,13 +111,13 @@ namespace SabberStoneClient
                 });
 
                 _writeStream = call.RequestStream;
-                WriteGameServerStream(MessageType.Initialisation, true, string.Empty);
+                WriteGameServerStream(MsgType.Initialisation, true, string.Empty);
 
                 await response;
             }
         }
 
-        public async void WriteGameServerStream(MessageType messageType, bool messageState, string message)
+        public async void WriteGameServerStream(MsgType messageType, bool messageState, string message)
         {
             if (_writeStream == null)
             {
@@ -133,14 +133,14 @@ namespace SabberStoneClient
             });
         }
 
-        public void WriteGameData(MessageType messageType, bool messageState, GameData gameData)
+        public void WriteGameData(MsgType messageType, bool messageState, GameData gameData)
         {
             WriteGameServerStream(messageType, messageState, JsonConvert.SerializeObject(gameData));
         }
 
         public Task Disconnect()
         {
-            throw new NotImplementedException();
+            return _channel.ShutdownAsync();
         }
 
         private void SetClientState(GameClientState gameClientState)
@@ -171,20 +171,20 @@ namespace SabberStoneClient
 
             switch (current.MessageType)
             {
-                case MessageType.Initialisation:
+                case MsgType.Initialisation:
                     SetClientState(GameClientState.Registred);
                     break;
 
-                case MessageType.Invitation:
+                case MsgType.Invitation:
                     _gameId = gameData.GameId;
                     _playerId = gameData.PlayerId;
                     if (_isBot)
                     {
-                        WriteGameData(MessageType.Invitation, true, new GameData() { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.None });
+                        WriteGameData(MsgType.Invitation, true, new GameData() { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.None });
                     }
                     break;
 
-                case MessageType.InGame:
+                case MsgType.InGame:
                     switch (gameData.GameDataType)
                     {
                         case GameDataType.None:
@@ -202,7 +202,7 @@ namespace SabberStoneClient
                             {
                                 var powerChoicesId = _random.Next(PowerChoices.Entities.Count);
                                 var powerChoicesChoice = JsonConvert.SerializeObject(new PowerChoices() { ChoiceType = PowerChoices.ChoiceType, Entities = new List<int>() { PowerChoices.Entities[powerChoicesId] } });
-                                WriteGameData(MessageType.InGame, true, new GameData() { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.PowerChoices, GameDataObject = powerChoicesChoice });
+                                WriteGameData(MsgType.InGame, true, new GameData() { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.PowerChoices, GameDataObject = powerChoicesChoice });
                                 //Log.Info($"choices:{powerChoicesId}");
                                 PowerChoices = null;
                             }
@@ -225,7 +225,7 @@ namespace SabberStoneClient
                                         ? _random.Next(powerOption.SubOptions.Count)
                                         : 0;
                                     var powerOptionChoice = JsonConvert.SerializeObject(new PowerOptionChoice() { PowerOption = powerOption, Target = target, Position = 0, SubOption = subOption });
-                                    WriteGameData(MessageType.InGame, true, new GameData() { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.PowerOptions, GameDataObject = powerOptionChoice });
+                                    WriteGameData(MsgType.InGame, true, new GameData() { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.PowerOptions, GameDataObject = powerOptionChoice });
                                     //Log.Info($"target:{target}, position:0, suboption: {subOption} {powerOption.Print()}");
                                     PowerOptionList.Clear();
                                 }

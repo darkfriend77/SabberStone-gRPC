@@ -18,7 +18,7 @@ namespace SabberStoneServer.Services
     {
         private static readonly ILog Log = Logger.Instance.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        public Action<MessageType, bool, GameData> ProcessGameData { get; internal set; }
+        public Action<MsgType, bool, GameData> ProcessGameData { get; internal set; }
 
         private int _index = 10000;
         public int NextSessionIndex => _index++;
@@ -157,14 +157,14 @@ namespace SabberStoneServer.Services
         {
             switch (current.MessageType)
             {
-                case MessageType.Initialisation:
-                    return new GameServerStream() { MessageType = MessageType.Initialisation, MessageState = true, Message = string.Empty };
-                case MessageType.Invitation:
-                case MessageType.InGame:
+                case MsgType.Initialisation:
+                    return new GameServerStream() { MessageType = MsgType.Initialisation, MessageState = true, Message = string.Empty };
+                case MsgType.Invitation:
+                case MsgType.InGame:
                     ProcessGameData(current.MessageType, current.MessageState, JsonConvert.DeserializeObject<GameData>(current.Message));
                     return null;
                 default:
-                    return new GameServerStream() { MessageType = MessageType.Initialisation, MessageState = false, Message = string.Empty };
+                    return new GameServerStream() { MessageType = MsgType.Initialisation, MessageState = false, Message = string.Empty };
             }
         }
 
