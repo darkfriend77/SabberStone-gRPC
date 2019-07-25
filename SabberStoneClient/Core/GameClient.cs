@@ -1,5 +1,4 @@
 ﻿using Grpc.Core;
-using log4net;
 using Newtonsoft.Json;
 using SabberStoneClient.Core;
 using SabberStoneContract.Model;
@@ -8,8 +7,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using static GameServerService;
@@ -18,7 +15,7 @@ namespace SabberStoneClient
 {
     public class GameClient
     {
-        private static readonly ILog Log = Logger.Instance.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        //private static readonly ILog Log = Logger.Instance.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private int _port;
 
@@ -79,7 +76,7 @@ namespace SabberStoneClient
         {
             if (_gameClientState != GameClientState.Connected)
             {
-                Log.Warn("Client isn't connected.");
+                //Log.Warn("Client isn't connected.");
                 return;
             }
 
@@ -87,7 +84,7 @@ namespace SabberStoneClient
 
             if (!authReply.RequestState)
             {
-                Log.Warn("Bad RegisterRequest.");
+                //Log.Warn("Bad RegisterRequest.");
                 return;
             }
 
@@ -96,7 +93,7 @@ namespace SabberStoneClient
 
             GameServerChannel();
 
-            Log.Info($"Register done.");
+            //Log.Info($"Register done.");
 
         }
 
@@ -124,7 +121,7 @@ namespace SabberStoneClient
         {
             if (_writeStream == null)
             {
-                Log.Warn($"There is no write stream currently.");
+                //Log.Warn($"There is no write stream currently.");
                 return;
             }
 
@@ -148,7 +145,7 @@ namespace SabberStoneClient
 
         private void SetClientState(GameClientState gameClientState)
         {
-            Log.Info($"SetClientState {gameClientState}");
+            //Log.Info($"SetClientState {gameClientState}");
             _gameClientState = gameClientState;
         }
 
@@ -156,7 +153,7 @@ namespace SabberStoneClient
         {
             if (!current.MessageState)
             {
-                Log.Warn($"Failed messageType {current.MessageType}, '{current.Message}'!");
+                //Log.Warn($"Failed messageType {current.MessageType}, '{current.Message}'!");
                 return;
             }
 
@@ -164,11 +161,11 @@ namespace SabberStoneClient
             if (current.Message != string.Empty)
             {
                 gameData = JsonConvert.DeserializeObject<GameData>(current.Message);
-                Log.Info($"GameData[Id:{gameData.GameId},Player:{gameData.PlayerId}]: {gameData.GameDataType} received");
+                //Log.Info($"GameData[Id:{gameData.GameId},Player:{gameData.PlayerId}]: {gameData.GameDataType} received");
             }
             else
             {
-                Log.Info($"Message[{current.MessageState},{current.MessageType}]: received.");
+                //Log.Info($"Message[{current.MessageState},{current.MessageType}]: received.");
             }
 
 
@@ -244,7 +241,7 @@ namespace SabberStoneClient
         {
             if (_gameClientState != GameClientState.Registred)
             {
-                Log.Warn("Client isn't registred.");
+                //Log.Warn("Client isn't registred.");
                 return;
             }
 
@@ -261,7 +258,7 @@ namespace SabberStoneClient
 
             if (!queueReply.RequestState)
             {
-                Log.Warn("Bad QueueRequest.");
+                //Log.Warn("Bad QueueRequest.");
                 return;
             }
 

@@ -17,10 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="lib\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\SabberStone\SabberStoneCore\SabberStoneCore.csproj" />
   </ItemGroup>
 
