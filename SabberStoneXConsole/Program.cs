@@ -13,7 +13,7 @@ namespace SabberStoneXConsole
     {
         static void Main(string[] args)
         {
-            RunServerWith(1);
+            RunServerWith(2);
             //SimpleTest();
         }
 
@@ -49,10 +49,10 @@ namespace SabberStoneXConsole
 
             while (clientTasks.Any(p => !p.IsCompleted))
             {
-                foreach (var clientTask in clientTasks)
-                {
-                    Console.WriteLine($" ... {clientTask.IsCompleted}");  
-                }
+                //foreach (var clientTask in clientTasks)
+                //{
+                //    Console.WriteLine($" ... {clientTask.IsCompleted}");
+                //}
 
                 Thread.Sleep(5000);
             }

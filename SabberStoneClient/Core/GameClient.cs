@@ -1,4 +1,5 @@
 ﻿using Grpc.Core;
+using log4net;
 using Newtonsoft.Json;
 using SabberStoneClient.Core;
 using SabberStoneContract.Model;
@@ -7,6 +8,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using static GameServerService;
@@ -15,7 +17,7 @@ namespace SabberStoneClient
 {
     public class GameClient
     {
-        //private static readonly ILog Log = Logger.Instance.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        private static readonly ILog Log = Logger.Instance.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private int _port;
 
@@ -76,7 +78,7 @@ namespace SabberStoneClient
         {
             if (_gameClientState != GameClientState.Connected)
             {
-                //Log.Warn("Client isn't connected.");
+                Log.Warn("Client isn't connected.");
                 return;
             }
 
@@ -84,7 +86,7 @@ namespace SabberStoneClient
 
             if (!authReply.RequestState)
             {
-                //Log.Warn("Bad RegisterRequest.");
+                Log.Warn("Bad RegisterRequest.");
                 return;
             }
 
@@ -93,8 +95,7 @@ namespace SabberStoneClient
 
             GameServerChannel();
 
-            //Log.Info($"Register done.");
-
+            Log.Info($"Register done.");
         }
 
         public async void GameServerChannel()
@@ -121,7 +122,7 @@ namespace SabberStoneClient
         {
             if (_writeStream == null)
             {
-                //Log.Warn($"There is no write stream currently.");
+                Log.Warn($"There is no write stream currently.");
                 return;
             }
 
@@ -138,6 +139,18 @@ namespace SabberStoneClient
             WriteGameServerStream(messageType, messageState, JsonConvert.SerializeObject(gameData));
         }
 
+        public void SendPowerChoicesChoice(PowerChoices powerChoices)
+        {
+            WriteGameData(MsgType.InGame, true, new GameData() { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.PowerChoices, GameDataObject = JsonConvert.SerializeObject(powerChoices) });
+            PowerChoices = null;
+        }
+
+        public void SendPowerOptionChoice(PowerOptionChoice powerOptionChoice)
+        {
+            WriteGameData(MsgType.InGame, true, new GameData() { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.PowerOptions, GameDataObject = JsonConvert.SerializeObject(powerOptionChoice) });
+            PowerOptionList.Clear();
+        }
+
         public async void Disconnect()
         {
             if (_writeStream != null)
@@ -152,7 +165,7 @@ namespace SabberStoneClient
 
         private void SetClientState(GameClientState gameClientState)
         {
-            //Log.Info($"SetClientState {gameClientState}");
+            Log.Info($"SetClientState {gameClientState}");
             _gameClientState = gameClientState;
         }
 
@@ -160,7 +173,7 @@ namespace SabberStoneClient
         {
             if (!current.MessageState)
             {
-                //Log.Warn($"Failed messageType {current.MessageType}, '{current.Message}'!");
+                Log.Warn($"Failed messageType {current.MessageType}, '{current.Message}'!");
                 return;
             }
 
@@ -174,7 +187,6 @@ namespace SabberStoneClient
             {
                 //Log.Info($"Message[{current.MessageState},{current.MessageType}]: received.");
             }
-
 
             switch (current.MessageType)
             {
@@ -208,9 +220,8 @@ namespace SabberStoneClient
                             if (_isBot)
                             {
                                 var powerChoicesId = _random.Next(PowerChoices.Entities.Count);
-                                var powerChoicesChoice = JsonConvert.SerializeObject(new PowerChoices() { ChoiceType = PowerChoices.ChoiceType, Entities = new List<int>() { PowerChoices.Entities[powerChoicesId] } });
-                                WriteGameData(MsgType.InGame, true, new GameData() { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.PowerChoices, GameDataObject = powerChoicesChoice });
-                                //Log.Info($"choices:{powerChoicesId}");
+                                Log.Info($"SendPowerChoicesChoice -> choices:{powerChoicesId}");
+                                SendPowerChoicesChoice(new PowerChoices() { ChoiceType = PowerChoices.ChoiceType, Entities = new List<int>() { PowerChoices.Entities[powerChoicesId] } });
                                 PowerChoices = null;
                             }
                             break;
@@ -231,9 +242,8 @@ namespace SabberStoneClient
                                     var subOption = powerOption.SubOptions != null && powerOption.SubOptions.Count > 0
                                         ? _random.Next(powerOption.SubOptions.Count)
                                         : 0;
-                                    var powerOptionChoice = JsonConvert.SerializeObject(new PowerOptionChoice() { PowerOption = powerOption, Target = target, Position = 0, SubOption = subOption });
-                                    WriteGameData(MsgType.InGame, true, new GameData() { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.PowerOptions, GameDataObject = powerOptionChoice });
-                                    //Log.Info($"target:{target}, position:0, suboption: {subOption} {powerOption.Print()}");
+                                    Log.Info($"SendPowerOptionChoice -> target:{target}, position:0, suboption: {subOption} {powerOption.OptionType}");
+                                    SendPowerOptionChoice(new PowerOptionChoice() { PowerOption = powerOption, Target = target, Position = 0, SubOption = subOption });
                                     PowerOptionList.Clear();
                                 }
                                 break;
@@ -253,7 +263,7 @@ namespace SabberStoneClient
         {
             if (_gameClientState != GameClientState.Registred)
             {
-                //Log.Warn("Client isn't registred.");
+                Log.Warn("Client isn't registred.");
                 return;
             }
 
@@ -270,7 +280,7 @@ namespace SabberStoneClient
 
             if (!queueReply.RequestState)
             {
-                //Log.Warn("Bad QueueRequest.");
+                Log.Warn("Bad QueueRequest.");
                 return;
             }
 
