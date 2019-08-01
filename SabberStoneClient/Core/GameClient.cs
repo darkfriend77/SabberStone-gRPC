@@ -1,6 +1,7 @@
 ﻿using Grpc.Core;
 using log4net;
 using Newtonsoft.Json;
+using SabberStoneClient.AI;
 using SabberStoneClient.Core;
 using SabberStoneContract.Model;
 using SabberStoneCore.Kettle;
@@ -13,7 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using static GameServerService;
 
-namespace SabberStoneClient
+namespace SabberStoneClient.Core
 {
     public class GameClient
     {
@@ -41,8 +42,6 @@ namespace SabberStoneClient
 
         private int _playerId;
 
-        private bool _isBot;
-
         private Random _random;
 
         public ConcurrentQueue<IPowerHistoryEntry> HistoryEntries { get; }
@@ -51,10 +50,12 @@ namespace SabberStoneClient
 
         public List<PowerOption> PowerOptionList { get; private set; }
 
-        public GameClient(int port, bool isBot = false)
+        private ISabberStoneAI _sabberStoneAI;
+
+        public GameClient(int port, ISabberStoneAI sabberStoneAI = null)
         {
             _port = port;
-            _isBot = isBot;
+            _sabberStoneAI = sabberStoneAI;
             _random = new Random();
 
             _target = $"127.0.0.1:{_port}";
@@ -197,7 +198,7 @@ namespace SabberStoneClient
                 case MsgType.Invitation:
                     _gameId = gameData.GameId;
                     _playerId = gameData.PlayerId;
-                    if (_isBot)
+                    if (_sabberStoneAI != null)
                     {
                         WriteGameData(MsgType.Invitation, true, new GameData() { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.None });
                     }
@@ -217,11 +218,9 @@ namespace SabberStoneClient
 
                         case GameDataType.PowerChoices:
                             PowerChoices = JsonConvert.DeserializeObject<PowerChoices>(gameData.GameDataObject);
-                            if (_isBot)
+                            if (_sabberStoneAI != null)
                             {
-                                var powerChoicesId = _random.Next(PowerChoices.Entities.Count);
-                                Log.Info($"SendPowerChoicesChoice -> choices:{powerChoicesId}");
-                                SendPowerChoicesChoice(new PowerChoices() { ChoiceType = PowerChoices.ChoiceType, Entities = new List<int>() { PowerChoices.Entities[powerChoicesId] } });
+                                SendPowerChoicesChoice(_sabberStoneAI.PowerChoices(PowerChoices));
                                 PowerChoices = null;
                             }
                             break;
@@ -231,20 +230,10 @@ namespace SabberStoneClient
                             if (powerOptions.PowerOptionList != null &&
                                 powerOptions.PowerOptionList.Count > 0)
                             {
-                                PowerOptionList = powerOptions.PowerOptionList;
-                                if (_isBot)
+                                if (_sabberStoneAI != null)
                                 {
-                                    var powerOptionId = _random.Next(PowerOptionList.Count);
-                                    var powerOption = PowerOptionList.ElementAt(powerOptionId);
-                                    var target = powerOption.MainOption?.Targets != null && powerOption.MainOption.Targets.Count > 0
-                                        ? powerOption.MainOption.Targets.ElementAt(_random.Next(powerOption.MainOption.Targets.Count))
-                                        : 0;
-                                    var subOption = powerOption.SubOptions != null && powerOption.SubOptions.Count > 0
-                                        ? _random.Next(powerOption.SubOptions.Count)
-                                        : 0;
-                                    Log.Info($"SendPowerOptionChoice -> target:{target}, position:0, suboption: {subOption} {powerOption.OptionType}");
-                                    SendPowerOptionChoice(new PowerOptionChoice() { PowerOption = powerOption, Target = target, Position = 0, SubOption = subOption });
-                                    PowerOptionList.Clear();
+                                    SendPowerOptionChoice(_sabberStoneAI.PowerOptions(powerOptions.PowerOptionList));
+                                    powerOptions.PowerOptionList.Clear();
                                 }
                                 break;
                             }

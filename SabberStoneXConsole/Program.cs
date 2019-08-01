@@ -1,5 +1,7 @@
 ﻿using Grpc.Core;
 using SabberStoneClient;
+using SabberStoneClient.AI;
+using SabberStoneClient.Core;
 using SabberStoneServer.Core;
 using System;
 using System.Collections.Generic;
@@ -13,14 +15,14 @@ namespace SabberStoneXConsole
     {
         static void Main(string[] args)
         {
-            RunServerWith(1);
+            RunServerWith(2);
             //SimpleTest();
         }
 
         public static void SimpleTest()
         {
             int port = 50051;
-            GameClient client = new GameClient(port, true);
+            GameClient client = new GameClient(port, new RandomAI());
             Console.WriteLine(client.GameClientState);
             client.Connect();
             Console.WriteLine(client.GameClientState);
@@ -43,7 +45,7 @@ namespace SabberStoneXConsole
             List<Task> clientTasks = new List<Task>();
             for (int i = 0; i < numberOfClients; i++)
             {
-                clientTasks.Add(CreateGameClientTask(port, $"TestClient{i}", ""));
+                clientTasks.Add(CreateGameClientTask(port, $"TestClient{i}", "", new RandomAI()));
                 Thread.Sleep(1000);
             }
 
@@ -62,9 +64,9 @@ namespace SabberStoneXConsole
 
         }
 
-        private static async Task CreateGameClientTask(int port, string accountName, string accountpsw, int numberOfGames = 0)
+        private static async Task CreateGameClientTask(int port, string accountName, string accountpsw, ISabberStoneAI sabberStoneAI, int numberOfGames = 0)
         {
-            GameClient client = new GameClient(port, true);
+            GameClient client = new GameClient(port, sabberStoneAI);
 
             client.Connect();
 
