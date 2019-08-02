@@ -44,6 +44,12 @@ namespace SabberStoneClient.Core
 
         private Random _random;
 
+        private List<UserInfo> _userInfos;
+
+        public UserInfo MyUserInfo => _userInfos.Where(p => p.PlayerId == _playerId).FirstOrDefault();
+
+        public UserInfo OpUserInfo => _userInfos.Where(p => p.PlayerId != _playerId).FirstOrDefault();
+
         public ConcurrentQueue<IPowerHistoryEntry> HistoryEntries { get; }
 
         public PowerChoices PowerChoices { get; private set; }
@@ -63,6 +69,7 @@ namespace SabberStoneClient.Core
 
             _gameId = -1;
             _playerId = -1;
+            _userInfos = new List<UserInfo>();
 
             HistoryEntries = new ConcurrentQueue<IPowerHistoryEntry>();
             PowerOptionList = new List<PowerOption>();
@@ -207,8 +214,10 @@ namespace SabberStoneClient.Core
                 case MsgType.InGame:
                     switch (gameData.GameDataType)
                     {
-                        case GameDataType.None:
+                        case GameDataType.Initialisation:
+                            _userInfos = JsonConvert.DeserializeObject<List<UserInfo>>(gameData.GameDataObject);
                             SetClientState(GameClientState.InGame);
+                            Log.Info($"Initialized game against account {OpUserInfo.AccountName}!");
                             break;
 
                         case GameDataType.PowerHistory:

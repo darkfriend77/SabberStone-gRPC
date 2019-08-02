@@ -41,6 +41,20 @@ namespace SabberStoneContract.Model
         public virtual string DeckData { get; set; }
         public virtual PlayerState PlayerState { get; set; }
         public virtual int PlayerId { get; set; }
+        public UserInfo OpenUserInfo()
+        {
+            return new UserInfo()
+            {
+                SessionId = 0,
+                AccountName = AccountName,
+                UserState = UserState.None,
+                GameId = GameId,
+                DeckType = DeckType.None,
+                DeckData = null,
+                PlayerState = PlayerState.None,
+                PlayerId = PlayerId
+            };
+        }
     }
 
     public enum GameDataType
@@ -50,7 +64,8 @@ namespace SabberStoneContract.Model
         PowerOptions,
         PowerChoices,
         Concede,
-        Result
+        Result,
+        Initialisation
     }
 
     public class GameData
