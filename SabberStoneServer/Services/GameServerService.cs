@@ -10,6 +10,7 @@ using Grpc.Core;
 using log4net;
 using Newtonsoft.Json;
 using SabberStoneContract.Model;
+using SabberStoneCore.Model;
 using SabberStoneServer.Core;
 
 namespace SabberStoneServer.Services
@@ -19,6 +20,8 @@ namespace SabberStoneServer.Services
         private static readonly ILog Log = Logger.Instance.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         public Action<MsgType, bool, GameData> ProcessGameData { get; internal set; }
+
+        public Func<int, int, MatchGameReply> GetMatchGameReply { get; internal set; }
 
         private int _index = 10000;
         public int NextSessionIndex => _index++;
@@ -104,6 +107,22 @@ namespace SabberStoneServer.Services
             };
 
             return Task.FromResult(reply);
+        }
+
+        public override Task<MatchGameReply> MatchGame(MatchGameRequest request, ServerCallContext context)
+        {
+            if (!TokenAuthentification(context.RequestHeaders, out string clientTokenValue))
+            {
+                return Task.FromResult(new MatchGameReply());
+            }
+
+            if (!_registredUsers.TryGetValue(clientTokenValue, out UserDataInfo userDataInfo))
+            {
+                Log.Info($"couldn't get user data info!");
+                return Task.FromResult(new MatchGameReply());
+            }
+
+            return Task.FromResult(GetMatchGameReply(userDataInfo.GameId, userDataInfo.PlayerId));
         }
 
         public override async Task GameServerChannel(IAsyncStreamReader<GameServerStream> requestStream, IServerStreamWriter<GameServerStream> responseStream, ServerCallContext context)

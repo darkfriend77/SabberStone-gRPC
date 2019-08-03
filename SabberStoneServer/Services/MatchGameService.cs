@@ -18,7 +18,7 @@ using System.Threading;
 
 namespace SabberStoneServer.Services
 {
-    public class MatchGameService
+    public partial class MatchGameService
     {
         private static readonly ILog Log = Logger.Instance.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -41,6 +41,8 @@ namespace SabberStoneServer.Services
         private PowerAllOptions _powerAllOptionsPlayer2;
 
         private Game _game;
+
+        public MatchGameReply MatchGame(int playerId) => CreateMatchGameReply();
 
         private readonly int _id;
 
@@ -210,10 +212,10 @@ namespace SabberStoneServer.Services
 
         public void SendPowerOptionsToPlayers()
         {
-            var allOptionsPlayer1 = PowerOptionsBuilder.AllOptions(_game, _game.Player1.Options());
-            SendGameData(Player1, MsgType.InGame, true, GameDataType.PowerOptions, JsonConvert.SerializeObject(new PowerOptions() { Index = allOptionsPlayer1.Index, PowerOptionList = allOptionsPlayer1.PowerOptionList }));
-            var allOptionsPlayer2 = PowerOptionsBuilder.AllOptions(_game, _game.Player2.Options());
-            SendGameData(Player2, MsgType.InGame, true, GameDataType.PowerOptions, JsonConvert.SerializeObject(new PowerOptions() { Index = allOptionsPlayer2.Index, PowerOptionList = allOptionsPlayer2.PowerOptionList }));
+            _powerAllOptionsPlayer1 = PowerOptionsBuilder.AllOptions(_game, _game.Player1.Options());
+            SendGameData(Player1, MsgType.InGame, true, GameDataType.PowerOptions, JsonConvert.SerializeObject(new PowerOptions() { Index = _powerAllOptionsPlayer1.Index, PowerOptionList = _powerAllOptionsPlayer1.PowerOptionList }));
+            _powerAllOptionsPlayer2 = PowerOptionsBuilder.AllOptions(_game, _game.Player2.Options());
+            SendGameData(Player2, MsgType.InGame, true, GameDataType.PowerOptions, JsonConvert.SerializeObject(new PowerOptions() { Index = _powerAllOptionsPlayer2.Index, PowerOptionList = _powerAllOptionsPlayer2.PowerOptionList }));
             Thread.Sleep(100);
         }
 

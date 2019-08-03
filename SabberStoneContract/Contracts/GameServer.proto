@@ -7,10 +7,11 @@ service GameServerService {
 
 	rpc Authentication (AuthRequest) returns (AuthReply) {}
 
-	rpc GameServerChannel (stream GameServerStream) returns (stream GameServerStream) {}
-
 	rpc GameQueue (QueueRequest) returns (QueueReply) {}
 
+	rpc MatchGame(MatchGameRequest) returns (MatchGameReply) {}
+
+	rpc GameServerChannel (stream GameServerStream) returns (stream GameServerStream) {}
 }
 
 enum GameType
@@ -61,6 +62,126 @@ message QueueRequest {
 message QueueReply {
 	bool requestState = 1;
 	string requestMessage = 2;
+}
+
+message MatchGameRequest {
+	int32 GameId = 1;
+} 
+
+message MatchGameReply {
+	int32 GameId = 1;
+	Controller CurrentPlayer = 2;
+	Controller CurrentOpponent = 3;
+	enum State {
+		INVALID = 0;
+		LOADING = 1;
+		RUNNING = 2;
+		COMPLETE = 3;
+	}
+	State state = 4;
+	int32 turn = 5;
+}
+
+message Controller {
+    int32 id = 1;
+    Hero hero = 2;
+    BoardZone board_zone = 3;
+    HandZone hand_zone = 4;
+    SecretZone secret_zone = 5;
+    DeckZone deck_zone = 6;
+    enum PlayState {
+        INVALID = 0;
+        PLAYING = 1;
+        WON = 4;
+        LOST = 5;
+        TIED = 6;
+    }
+    PlayState play_state = 7;
+    int32 base_mana = 8;
+    int32 remaining_mana = 9;
+    int32 overload_locked = 10;
+    int32 overload_owed = 11;
+}
+
+message BoardZone {
+    repeated Minion minions = 1;
+}
+
+message Minion {
+    int32 card_id = 1;
+    int32 atk = 2;
+    int32 base_health = 3;
+    int32 damage = 4;
+    int32 num_attacks_this_turn = 5;
+    bool exhausted = 6;
+    bool attackable_by_rush = 7;
+    bool charge = 8;
+    bool windfury = 9;
+    bool lifesteal = 10;
+    bool poisonous = 11;
+    bool stealth = 12;
+    bool divine_shield = 13;
+    bool immune = 14;
+    bool elusive = 15;
+    bool frozen = 16;
+    bool deathrattle = 17;
+    // race
+    // trigger or aura
+    // enchantments
+    int32 zone_position = 25;
+    int32 order_of_play = 26;
+}
+
+message HandZone {
+    repeated Playable entities = 1;
+}
+
+message SecretZone {
+    repeated Playable entities = 1;
+}
+
+message DeckZone {
+    repeated Playable entities = 1;
+}
+
+message Playable {
+    int32 card_id = 1;
+    int32 cost = 2;
+    int32 atk = 3;
+    int32 base_health = 4;
+    bool ghostly = 5;
+}
+
+message Hero {
+    int32 card_class = 1;
+    int32 atk = 2;
+    int32 base_health = 3;
+    int32 damage = 4;
+    int32 num_attacks_this_turn = 5;
+    int32 armor = 20;
+    bool exhausted = 6;
+    bool stealth = 12;
+    bool immune = 14;
+    HeroPower power = 15;
+    Weapon weapon = 16;
+    // fatigue
+}
+
+message HeroPower {
+    int32 card_id = 1;
+    int32 cost = 2;
+    bool exhausted = 3;
+}
+
+message Weapon {
+    int32 card_id = 1;
+    int32 atk = 2;
+    int32 durability = 3;
+    int32 damage = 4;
+    bool windfury = 9;
+    bool lifesteal = 10;
+    bool poisonous = 11;
+    bool immune = 14;
 }
 
 message GameServerStream {
