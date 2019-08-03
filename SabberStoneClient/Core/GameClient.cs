@@ -116,18 +116,15 @@ namespace SabberStoneClient.Core
 
             var matchGameReply = _client.MatchGame(new MatchGameRequest { GameId = _gameId }, new Metadata { new Metadata.Entry("token", _sessionToken) });
 
-            //if (!authReply.RequestState)
-            //{
-            //    Log.Warn("Bad RegisterRequest.");
-            //    return;
-            //}
+            if (!matchGameReply.RequestState)
+            {
+                Log.Warn("Bad MatchGameRequest.");
+                return;
+            }
 
-            //_sessionId = authReply.SessionId;
-            //_sessionToken = authReply.SessionToken;
+            // TODO do something with the game object ...
 
-            //GameServerChannel();
-
-            Log.Info($"Register done.");
+            Log.Info($"Got match game successfully.");
         }
 
         public async void GameServerChannel()
