@@ -21,7 +21,7 @@ namespace SabberStoneServer.Services
 
         public Action<MsgType, bool, GameData> ProcessGameData { get; internal set; }
 
-        public Func<int, int, MatchGameReply> GetMatchGameReply { get; internal set; }
+        public Func<int, int, MatchGame> GetMatchGame { get; internal set; }
 
         private int _index = 10000;
         public int NextSessionIndex => _index++;
@@ -113,16 +113,20 @@ namespace SabberStoneServer.Services
         {
             if (!TokenAuthentification(context.RequestHeaders, out string clientTokenValue))
             {
-                return Task.FromResult(new MatchGameReply());
+                return Task.FromResult(new MatchGameReply() { RequestState = false });
             }
 
             if (!_registredUsers.TryGetValue(clientTokenValue, out UserDataInfo userDataInfo))
             {
                 Log.Info($"couldn't get user data info!");
-                return Task.FromResult(new MatchGameReply());
+                return Task.FromResult(new MatchGameReply() { RequestState = false });
             }
 
-            return Task.FromResult(GetMatchGameReply(userDataInfo.GameId, userDataInfo.PlayerId));
+            return Task.FromResult(new MatchGameReply()
+            {
+                RequestState = true,
+                MatchGame = GetMatchGame(userDataInfo.GameId, userDataInfo.PlayerId)
+            });
         }
 
         public override async Task GameServerChannel(IAsyncStreamReader<GameServerStream> requestStream, IServerStreamWriter<GameServerStream> responseStream, ServerCallContext context)

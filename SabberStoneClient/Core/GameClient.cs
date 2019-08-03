@@ -106,6 +106,30 @@ namespace SabberStoneClient.Core
             Log.Info($"Register done.");
         }
 
+        public void MatchGame()
+        {
+            if (_gameClientState != GameClientState.InGame)
+            {
+                Log.Warn("Client isn't in a game.");
+                return;
+            }
+
+            var matchGameReply = _client.MatchGame(new MatchGameRequest { GameId = _gameId }, new Metadata { new Metadata.Entry("token", _sessionToken) });
+
+            //if (!authReply.RequestState)
+            //{
+            //    Log.Warn("Bad RegisterRequest.");
+            //    return;
+            //}
+
+            //_sessionId = authReply.SessionId;
+            //_sessionToken = authReply.SessionToken;
+
+            //GameServerChannel();
+
+            Log.Info($"Register done.");
+        }
+
         public async void GameServerChannel()
         {
             using (var call = _client.GameServerChannel(headers: new Metadata { new Metadata.Entry("token", _sessionToken) }))

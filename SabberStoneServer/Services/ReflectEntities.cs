@@ -13,14 +13,14 @@ namespace SabberStoneServer.Services
 {
     public partial class MatchGameService
     {
-        private MatchGameReply CreateMatchGameReply()
+        private MatchGame CreateMatchGameReply()
         {
-            MatchGameReply result = new MatchGameReply()
+            MatchGame result = new MatchGame()
             {
                 GameId = GameId,
                 CurrentPlayer = GetController(_game.CurrentPlayer),
                 CurrentOpponent = GetController(_game.CurrentOpponent),
-                State = (MatchGameReply.Types.State)_game.State,
+                State = (MatchGame.Types.State)_game.State,
                 Turn = _game.Turn
         };
 

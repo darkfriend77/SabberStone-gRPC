@@ -69,6 +69,11 @@ message MatchGameRequest {
 } 
 
 message MatchGameReply {
+	bool requestState = 1;
+	MatchGame matchGame = 2;
+}
+
+message MatchGame {
 	int32 GameId = 1;
 	Controller CurrentPlayer = 2;
 	Controller CurrentOpponent = 3;

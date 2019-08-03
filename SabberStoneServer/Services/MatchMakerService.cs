@@ -32,7 +32,7 @@ namespace SabberStoneServer.Services
         {
             _gameServerService = gameServerService;
             _gameServerService.ProcessGameData = ProcessGameData;
-            _gameServerService.GetMatchGameReply = GetMatchGameReply;
+            _gameServerService.GetMatchGame = GetMatchGame;
             _timer = new Timer((e) => { MatchMakerEvent(); }, null, Timeout.Infinite, Timeout.Infinite);
             _matchGames = new ConcurrentDictionary<int, MatchGameService>();
         }
@@ -113,7 +113,7 @@ namespace SabberStoneServer.Services
 
         }
 
-        public MatchGameReply GetMatchGameReply(int gameId, int playerId)
+        public MatchGame GetMatchGame(int gameId, int playerId)
         {
             if (!_matchGames.TryGetValue(gameId, out MatchGameService matchGameService))
             {

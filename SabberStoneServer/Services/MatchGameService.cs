@@ -42,7 +42,7 @@ namespace SabberStoneServer.Services
 
         private Game _game;
 
-        public MatchGameReply MatchGame(int playerId) => CreateMatchGameReply();
+        public MatchGame MatchGame(int playerId) => CreateMatchGameReply();
 
         private readonly int _id;
 
