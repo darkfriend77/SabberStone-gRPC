@@ -132,11 +132,12 @@ namespace SabberStoneServer.Services
 
             if (Player1.UserState == UserState.InGame && Player2.UserState == UserState.InGame)
             {
+                Start();
+                Thread.Sleep(500);
+
                 // we send over opponend user info which is reduced to open available informations
                 SendGameData(Player1, MsgType.InGame, true, GameDataType.Initialisation, JsonConvert.SerializeObject(new List<UserInfo> { Player1, Player2.OpenUserInfo() }));
                 SendGameData(Player2, MsgType.InGame, true, GameDataType.Initialisation, JsonConvert.SerializeObject(new List<UserInfo> { Player1.OpenUserInfo(), Player2 }));
-                Thread.Sleep(500);
-                Start();
             }
         }
 

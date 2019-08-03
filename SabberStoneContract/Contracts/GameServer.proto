@@ -65,7 +65,7 @@ message QueueReply {
 }
 
 message MatchGameRequest {
-	int32 GameId = 1;
+	int32 gameId = 1;
 } 
 
 message MatchGameReply {
@@ -74,14 +74,14 @@ message MatchGameReply {
 }
 
 message MatchGame {
-	int32 GameId = 1;
-	Controller CurrentPlayer = 2;
-	Controller CurrentOpponent = 3;
+	int32 gameId = 1;
+	Controller currentPlayer = 2;
+	Controller currentOpponent = 3;
 	enum State {
-		INVALID = 0;
-		LOADING = 1;
-		RUNNING = 2;
-		COMPLETE = 3;
+		Invalid = 0;
+		Loading = 1;
+		Running = 2;
+		Complete = 3;
 	}
 	State state = 4;
 	int32 turn = 5;
