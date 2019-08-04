@@ -12,10 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\SabberStone\SabberStoneCore\SabberStoneCore.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Protobuf Include="Contracts\GameServer.proto" Link="GameServer.proto" />
   </ItemGroup>
 
@@ -24,14 +20,8 @@
   </ItemGroup>-->
 
   <ItemGroup>
-    <Reference Include="System.Buffers">
-      <HintPath>lib\System.Buffers.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Memory">
-      <HintPath>lib\System.Memory.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Runtime.CompilerServices.Unsafe">
-      <HintPath>lib\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    <Reference Include="SabberStoneCore">
+      <HintPath>SabberStoneCore.dll</HintPath>
     </Reference>
   </ItemGroup>
 

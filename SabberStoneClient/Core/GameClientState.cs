@@ -6,6 +6,7 @@
         Connected,
         Registred,
         Queued,
+        Invited,
         InGame
     }
 }

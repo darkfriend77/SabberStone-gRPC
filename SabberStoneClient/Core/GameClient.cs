@@ -139,7 +139,6 @@ namespace SabberStoneClient.Core
             }
 
             // TODO do something with the game object ...
-
             Log.Info($"Got match game successfully.");
         }
 
@@ -194,6 +193,11 @@ namespace SabberStoneClient.Core
         {
             // waiting on sending before going on ...
             WriteGameServerStream(messageType, messageState, JsonConvert.SerializeObject(gameData)).Wait();
+        }
+
+        public void SendInvitationReply(bool accept)
+        {
+            WriteGameData(MsgType.Invitation, accept, new GameData { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.None });
         }
 
         public void SendPowerChoicesChoice(PowerChoices powerChoices)
@@ -251,6 +255,7 @@ namespace SabberStoneClient.Core
                 case MsgType.Invitation:
                     _gameId = gameData.GameId;
                     _playerId = gameData.PlayerId;
+                    GameClientState = GameClientState.Invited;
 
                     // action call here
                     ActionCallInvitation();
@@ -331,18 +336,11 @@ namespace SabberStoneClient.Core
             GameClientState = GameClientState.Queued;
         }
 
-
         public async virtual void ActionCallInvitation()
         {
             await Task.Run(() =>
             {
-                WriteGameData(MsgType.Invitation, true, 
-                    new GameData
-                    {
-                        GameId = _gameId, 
-                        PlayerId = _playerId, 
-                        GameDataType = GameDataType.None
-                    });
+                SendInvitationReply(true);
             });
         }
 

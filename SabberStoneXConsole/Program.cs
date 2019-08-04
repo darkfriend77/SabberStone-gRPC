@@ -82,7 +82,9 @@ namespace SabberStoneXConsole
 
         private static void Client_StateChanged(GameClient client, GameClientState state)
         {
-            if (state == GameClientState.Queued || state == GameClientState.InGame) return;
+            if (state == GameClientState.Queued
+             || state == GameClientState.Invited
+             || state == GameClientState.InGame) return;
 
             client.StateChanged -= Client_StateChanged;
             client.Disconnect();
