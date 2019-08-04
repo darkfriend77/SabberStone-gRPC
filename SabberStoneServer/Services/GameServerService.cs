@@ -163,12 +163,20 @@ namespace SabberStoneServer.Services
                 Log.Info($"gameserver channel opened for user!");
                 while (await requestStream.MoveNext(CancellationToken.None))
                 {
-                    var response = ProcessRequest(clientTokenValue, requestStream.Current);
-
-                    if (response != null)
+                    try
                     {
-                        await responseStream.WriteAsync(response);
+                        var response = ProcessRequest(clientTokenValue, requestStream.Current);
+
+                        if (response != null)
+                        {
+                            await responseStream.WriteAsync(response);
+                        }
                     }
+                    catch
+                    {
+                        ;
+                    }
+
                 }
             });
 
@@ -183,6 +191,8 @@ namespace SabberStoneServer.Services
                 case MsgType.Initialisation:
                     return new GameServerStream() { MessageType = MsgType.Initialisation, MessageState = true, Message = string.Empty };
                 case MsgType.Invitation:
+                    Log.Debug($"Invitation reply received.");
+                    goto case MsgType.InGame;
                 case MsgType.InGame:
                     ProcessGameData(current.MessageType, current.MessageState, JsonConvert.DeserializeObject<GameData>(current.Message));
                     return null;

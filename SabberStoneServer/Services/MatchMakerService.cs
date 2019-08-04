@@ -8,6 +8,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace SabberStoneServer.Services
 {
@@ -48,7 +49,7 @@ namespace SabberStoneServer.Services
                 }
             });
 
-            var queuedUsers = _gameServerService.RegistredUsers.ToList().Where(user => user.UserState == UserState.Queued).ToList();
+            var queuedUsers = _gameServerService.RegistredUsers.Where(user => user.UserState == UserState.Queued).ToList();
             if (queuedUsers.Count > 0)
             {
                 Log.Info($"{queuedUsers.Count} users queued for matchmaking.");
@@ -105,7 +106,7 @@ namespace SabberStoneServer.Services
                     matchGame.InvitationReply(messageState, gameData);
                     break;
 
-                case MsgType.InGame:
+                case MsgType.InGame: 
                     matchGame.ProcessGameData(gameData);
                     break;
             }

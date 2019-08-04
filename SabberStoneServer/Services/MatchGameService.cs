@@ -113,10 +113,6 @@ namespace SabberStoneServer.Services
 
             Log.Info($"[_gameId:{GameId}] Game creation done!");
             _game.StartGame();
-
-            SendPowerHistoryToPlayers();
-
-            SendPowerOptionsToPlayers();
         }
 
         internal void InvitationReply(bool state, GameData gameData)
@@ -133,11 +129,17 @@ namespace SabberStoneServer.Services
             if (Player1.UserState == UserState.InGame && Player2.UserState == UserState.InGame)
             {
                 Start();
-                Thread.Sleep(500);
+                //Thread.Sleep(500);
 
                 // we send over opponend user info which is reduced to open available informations
-                SendGameData(Player1, MsgType.InGame, true, GameDataType.Initialisation, JsonConvert.SerializeObject(new List<UserInfo> { Player1, Player2.OpenUserInfo() }));
-                SendGameData(Player2, MsgType.InGame, true, GameDataType.Initialisation, JsonConvert.SerializeObject(new List<UserInfo> { Player1.OpenUserInfo(), Player2 }));
+                SendGameData(Player1, MsgType.InGame, true, GameDataType.Initialisation,
+                    JsonConvert.SerializeObject(new List<UserInfo> {Player1, Player2.OpenUserInfo()}));
+                SendGameData(Player2, MsgType.InGame, true, GameDataType.Initialisation,
+                    JsonConvert.SerializeObject(new List<UserInfo> {Player1.OpenUserInfo(), Player2}));
+
+                SendPowerHistoryToPlayers();
+
+                SendPowerOptionsToPlayers();
             }
         }
 
@@ -208,7 +210,7 @@ namespace SabberStoneServer.Services
             string powerHistory = JsonConvert.SerializeObject(_game.PowerHistory.Last);
             SendGameData(Player1, MsgType.InGame, true, GameDataType.PowerHistory, powerHistory);
             SendGameData(Player2, MsgType.InGame, true, GameDataType.PowerHistory, powerHistory);
-            Thread.Sleep(100);
+            //Thread.Sleep(100);
         }
 
         public void SendPowerOptionsToPlayers()
@@ -217,7 +219,7 @@ namespace SabberStoneServer.Services
             SendGameData(Player1, MsgType.InGame, true, GameDataType.PowerOptions, JsonConvert.SerializeObject(new PowerOptions() { Index = _powerAllOptionsPlayer1.Index, PowerOptionList = _powerAllOptionsPlayer1.PowerOptionList }));
             _powerAllOptionsPlayer2 = PowerOptionsBuilder.AllOptions(_game, _game.Player2.Options());
             SendGameData(Player2, MsgType.InGame, true, GameDataType.PowerOptions, JsonConvert.SerializeObject(new PowerOptions() { Index = _powerAllOptionsPlayer2.Index, PowerOptionList = _powerAllOptionsPlayer2.PowerOptionList }));
-            Thread.Sleep(100);
+            //Thread.Sleep(100);
         }
 
         private void SendPowerChoicesToPlayers()
@@ -231,17 +233,40 @@ namespace SabberStoneServer.Services
             {
                 SendGameData(Player2, MsgType.InGame, true, GameDataType.PowerChoices, JsonConvert.SerializeObject(new PowerChoices() { ChoiceType = _game.Player2.Choice.ChoiceType, Entities = _game.Player2.Choice.Choices }));
             }
-            Thread.Sleep(100);
+            //Thread.Sleep(100);
         }
 
         public void SendGameData(UserDataInfo player, MsgType messageType, bool messageState, GameDataType gameDataType, string gameDataObject = "")
         {
-            player.ResponseStream.WriteAsync(new GameServerStream()
+            var log = new MessageLog
             {
-                MessageType = messageType,
-                MessageState = messageState,
-                Message = JsonConvert.SerializeObject(new GameData() { GameId = GameId, PlayerId = player.PlayerId, GameDataType = gameDataType, GameDataObject = gameDataObject })
-            });
+                Type = messageType,
+                State = messageState,
+                GameDataType = gameDataType,
+                GameDataObject = gameDataObject
+            };
+            player.Logs.Push(log);
+            //Log.Debug($"Server sent {log} to {player.AccountName}");
+
+            try
+            {
+
+                player.ResponseStream.WriteAsync(new GameServerStream()
+                {
+                    MessageType = messageType,
+                    MessageState = messageState,
+                    Message = JsonConvert.SerializeObject(new GameData()
+                    {
+                        GameId = GameId, PlayerId = player.PlayerId, GameDataType = gameDataType,
+                        GameDataObject = gameDataObject
+                    })
+                }).Wait();
+            }
+            catch
+            {
+                ;
+            }
+
         }
 
         public void Stop()

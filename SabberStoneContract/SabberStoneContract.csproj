@@ -15,11 +15,14 @@
     <Protobuf Include="Contracts\GameServer.proto" Link="GameServer.proto" />
   </ItemGroup>
 
-  <ItemGroup>
+  <!--<ItemGroup>
     <ProjectReference Include="..\..\SabberStone\SabberStoneCore\SabberStoneCore.csproj" />
-  </ItemGroup>
+  </ItemGroup>-->
 
   <ItemGroup>
+    <Reference Include="SabberStoneCore">
+      <HintPath>SabberStoneCore_debug.dll</HintPath>
+    </Reference>
     <Reference Include="System.Buffers">
       <HintPath>lib\System.Buffers.dll</HintPath>
     </Reference>
