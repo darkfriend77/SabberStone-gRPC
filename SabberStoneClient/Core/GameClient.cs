@@ -2,7 +2,6 @@
 using log4net;
 using Newtonsoft.Json;
 using SabberStoneClient.AI;
-using SabberStoneClient.Core;
 using SabberStoneContract.Model;
 using SabberStoneCore.Kettle;
 using System;
@@ -12,6 +11,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+
 using static GameServerService;
 
 namespace SabberStoneClient.Core
@@ -35,6 +35,7 @@ namespace SabberStoneClient.Core
             get => _gameClientState;
             private set
             {
+                Log.Info($"SetClientState {value}");
                 StateChanged?.Invoke(this, value);
                 _gameClientState = value;
             }
@@ -49,8 +50,6 @@ namespace SabberStoneClient.Core
         private int _gameId;
 
         private int _playerId;
-
-        private Random _random;
 
         private List<UserInfo> _userInfos;
 
@@ -78,7 +77,7 @@ namespace SabberStoneClient.Core
             _sabberStoneAI = sabberStoneAI ?? new RandomAI();
 
             _target = $"127.0.0.1:{_port}";
-            SetClientState(GameClientState = GameClientState.None);
+            GameClientState = GameClientState.None;
 
             _gameId = -1;
             _playerId = -1;
@@ -93,7 +92,7 @@ namespace SabberStoneClient.Core
         {
             _channel = new Channel(_target, ChannelCredentials.Insecure);
             _client = new GameServerServiceClient(_channel);
-            SetClientState(GameClientState.Connected);
+            GameClientState = GameClientState.Connected;
         }
 
         public async Task Register(string accountName, string accountPsw)
@@ -193,19 +192,22 @@ namespace SabberStoneClient.Core
 
         public void WriteGameData(MsgType messageType, bool messageState, GameData gameData)
         {
-            WriteGameServerStream(messageType, messageState, JsonConvert.SerializeObject(gameData));
+            // waiting on sending before going on ...
+            WriteGameServerStream(messageType, messageState, JsonConvert.SerializeObject(gameData)).Wait();
         }
 
         public void SendPowerChoicesChoice(PowerChoices powerChoices)
         {
-            WriteGameData(MsgType.InGame, true, new GameData() { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.PowerChoices, GameDataObject = JsonConvert.SerializeObject(powerChoices) });
+            // clear before sent ...
             PowerChoices = null;
+            WriteGameData(MsgType.InGame, true, new GameData() { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.PowerChoices, GameDataObject = JsonConvert.SerializeObject(powerChoices) });
         }
 
         public void SendPowerOptionChoice(PowerOptionChoice powerOptionChoice)
         {
-            WriteGameData(MsgType.InGame, true, new GameData() { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.PowerOptions, GameDataObject = JsonConvert.SerializeObject(powerOptionChoice) });
+            // clear before sent ...
             PowerOptionList.Clear();
+            WriteGameData(MsgType.InGame, true, new GameData() { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.PowerOptions, GameDataObject = JsonConvert.SerializeObject(powerOptionChoice) });
         }
 
         public async void Disconnect()
@@ -215,15 +217,9 @@ namespace SabberStoneClient.Core
                 await _writeStream.CompleteAsync();
             }
 
-            SetClientState(GameClientState.None);
+            GameClientState = GameClientState.None;
 
             await _channel.ShutdownAsync();
-        }
-
-        private void SetClientState(GameClientState gameClientState)
-        {
-            Log.Info($"SetClientState {gameClientState}");
-            GameClientState = gameClientState;
         }
 
         private void ProcessChannelMessage(GameServerStream current)
@@ -248,7 +244,7 @@ namespace SabberStoneClient.Core
             switch (current.MessageType)
             {
                 case MsgType.Initialisation:
-                    SetClientState(GameClientState.Registred);
+                    GameClientState = GameClientState.Registred;
                     registerWaiter.SetResult(new object());
                     break;
 
@@ -265,7 +261,7 @@ namespace SabberStoneClient.Core
                     {
                         case GameDataType.Initialisation:
                             _userInfos = JsonConvert.DeserializeObject<List<UserInfo>>(gameData.GameDataObject);
-                            SetClientState(GameClientState.InGame);
+                            GameClientState = GameClientState.InGame;
                             Log.Info($"Initialized game against account {OpUserInfo.AccountName}!");
 
                             // action call here
@@ -300,7 +296,7 @@ namespace SabberStoneClient.Core
                         case GameDataType.Result:
 
                             //Log.Info($" ... ");
-                            SetClientState(GameClientState.Registred);
+                            GameClientState = GameClientState.Registred;
                             break;
                     }
                     break;
@@ -332,7 +328,7 @@ namespace SabberStoneClient.Core
                 return;
             }
 
-            SetClientState(GameClientState.Queued);
+            GameClientState = GameClientState.Queued;
         }
 
 
@@ -352,7 +348,10 @@ namespace SabberStoneClient.Core
 
         public async virtual void ActionCallInitialisation()
         {
-            await Task.Run(MatchGame);
+            await Task.Run(() =>
+            {
+                MatchGame();
+            });
         }
 
         public async virtual void ActionCallPowerChoices()

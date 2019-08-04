@@ -31,7 +31,7 @@ namespace SabberStoneXConsole
             Console.ReadKey();
         }
 
-        public static async void RunServerWith(int numberOfClients)
+        public static void RunServerWith(int numberOfClients)
         {
 
             var port = 50051;
@@ -43,7 +43,6 @@ namespace SabberStoneXConsole
             matchMaker.Start(7);
 
             Task<GameClient>[] tasks = new Task<GameClient>[numberOfClients];
-            //GameClient[] clients = new GameClient[numberOfClients];
 
             for (int i = 0; i < numberOfClients; i++)
             {

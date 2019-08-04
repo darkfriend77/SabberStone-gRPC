@@ -11,9 +11,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SabberStoneXTest", "SabberS
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SabberStoneXConsole", "SabberStoneXConsole\SabberStoneXConsole.csproj", "{0122F179-9E4C-4553-A119-4C456B41C0DE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SabberStoneClient", "SabberStoneClient\SabberStoneClient.csproj", "{4352B08F-4845-49DB-9AB3-D37ABA52455C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SabberStoneClient", "SabberStoneClient\SabberStoneClient.csproj", "{4352B08F-4845-49DB-9AB3-D37ABA52455C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SabberStoneCore", "..\SabberStone\SabberStoneCore\SabberStoneCore.csproj", "{7F554574-6ECE-4E55-951B-C6C08A022704}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SabberStoneCore", "..\SabberStone\SabberStoneCore\SabberStoneCore.csproj", "{393209D8-87F3-4BA4-859A-939D6F9899FE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -52,12 +52,12 @@ Global
 		{4352B08F-4845-49DB-9AB3-D37ABA52455C}.NoSpan|Any CPU.Build.0 = Debug|Any CPU
 		{4352B08F-4845-49DB-9AB3-D37ABA52455C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4352B08F-4845-49DB-9AB3-D37ABA52455C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7F554574-6ECE-4E55-951B-C6C08A022704}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7F554574-6ECE-4E55-951B-C6C08A022704}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7F554574-6ECE-4E55-951B-C6C08A022704}.NoSpan|Any CPU.ActiveCfg = NoSpan|Any CPU
-		{7F554574-6ECE-4E55-951B-C6C08A022704}.NoSpan|Any CPU.Build.0 = NoSpan|Any CPU
-		{7F554574-6ECE-4E55-951B-C6C08A022704}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7F554574-6ECE-4E55-951B-C6C08A022704}.Release|Any CPU.Build.0 = Release|Any CPU
+		{393209D8-87F3-4BA4-859A-939D6F9899FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{393209D8-87F3-4BA4-859A-939D6F9899FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{393209D8-87F3-4BA4-859A-939D6F9899FE}.NoSpan|Any CPU.ActiveCfg = NoSpan|Any CPU
+		{393209D8-87F3-4BA4-859A-939D6F9899FE}.NoSpan|Any CPU.Build.0 = NoSpan|Any CPU
+		{393209D8-87F3-4BA4-859A-939D6F9899FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{393209D8-87F3-4BA4-859A-939D6F9899FE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
