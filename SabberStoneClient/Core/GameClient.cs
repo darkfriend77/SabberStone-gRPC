@@ -30,7 +30,15 @@ namespace SabberStoneClient.Core
 
         private GameClientState _gameClientState;
 
-        public GameClientState GameClientState { get { return _gameClientState; } }
+        public GameClientState GameClientState
+        {
+            get => _gameClientState;
+            private set
+            {
+                StateChanged?.Invoke(this, value);
+                _gameClientState = value;
+            }
+        }
 
         private IClientStreamWriter<GameServerStream> _writeStream;
 
@@ -46,9 +54,15 @@ namespace SabberStoneClient.Core
 
         private List<UserInfo> _userInfos;
 
-        public UserInfo MyUserInfo => _userInfos.Where(p => p.PlayerId == _playerId).FirstOrDefault();
+        private TaskCompletionSource<object> registerWaiter;
 
-        public UserInfo OpUserInfo => _userInfos.Where(p => p.PlayerId != _playerId).FirstOrDefault();
+        public event Action<GameClient, GameClientState> StateChanged;
+
+        public string AccountName { get; private set; }
+
+        public UserInfo MyUserInfo => _userInfos.FirstOrDefault(p => p.PlayerId == _playerId);
+
+        public UserInfo OpUserInfo => _userInfos.FirstOrDefault(p => p.PlayerId != _playerId);
 
         public ConcurrentQueue<IPowerHistoryEntry> HistoryEntries { get; }
 
@@ -58,18 +72,19 @@ namespace SabberStoneClient.Core
 
         private ISabberStoneAI _sabberStoneAI;
 
-        public GameClient(int port, ISabberStoneAI sabberStoneAI)
+        public GameClient(int port, ISabberStoneAI sabberStoneAI, string accountName = "")
         {
             _port = port;
             _sabberStoneAI = sabberStoneAI ?? new RandomAI();
 
             _target = $"127.0.0.1:{_port}";
-            SetClientState(_gameClientState = GameClientState.None);
+            SetClientState(GameClientState = GameClientState.None);
 
             _gameId = -1;
             _playerId = -1;
             _userInfos = new List<UserInfo>();
 
+            AccountName = accountName;
             HistoryEntries = new ConcurrentQueue<IPowerHistoryEntry>();
             PowerOptionList = new List<PowerOption>();
         }
@@ -81,9 +96,9 @@ namespace SabberStoneClient.Core
             SetClientState(GameClientState.Connected);
         }
 
-        public void Register(string accountName, string accountPsw)
+        public async Task Register(string accountName, string accountPsw)
         {
-            if (_gameClientState != GameClientState.Connected)
+            if (GameClientState != GameClientState.Connected)
             {
                 Log.Warn("Client isn't connected.");
                 return;
@@ -102,12 +117,15 @@ namespace SabberStoneClient.Core
 
             GameServerChannel();
 
+            registerWaiter = new TaskCompletionSource<object>();
+            await registerWaiter.Task;
+
             Log.Info($"Register done.");
         }
 
         public void MatchGame()
         {
-            if (_gameClientState != GameClientState.InGame)
+            if (GameClientState != GameClientState.InGame)
             {
                 Log.Warn("Client isn't in a game.");
                 return;
@@ -133,20 +151,29 @@ namespace SabberStoneClient.Core
                 // listen to game server
                 var response = Task.Run(async () =>
                 {
-                    while (await call.ResponseStream.MoveNext(CancellationToken.None) && _gameClientState != GameClientState.None)
+                    while (await call.ResponseStream.MoveNext(CancellationToken.None) && GameClientState != GameClientState.None)
                     {
-                        ProcessChannelMessage(call.ResponseStream.Current);
+                        try
+                        {
+                            ProcessChannelMessage(call.ResponseStream.Current);
+                        }
+                        catch
+                        {
+                            ;
+                        }
+
                     };
                 });
 
                 _writeStream = call.RequestStream;
-                WriteGameServerStream(MsgType.Initialisation, true, string.Empty);
+                await WriteGameServerStream(MsgType.Initialisation, true, string.Empty);
 
+                //await call.RequestStream.CompleteAsync();
                 await response;
             }
         }
 
-        public async void WriteGameServerStream(MsgType messageType, bool messageState, string message)
+        public async Task WriteGameServerStream(MsgType messageType, bool messageState, string message)
         {
             if (_writeStream == null)
             {
@@ -160,6 +187,8 @@ namespace SabberStoneClient.Core
                 MessageState = messageState,
                 Message = message
             });
+
+            Log.Debug($"{AccountName} sent [{messageType}]");
         }
 
         public void WriteGameData(MsgType messageType, bool messageState, GameData gameData)
@@ -194,7 +223,7 @@ namespace SabberStoneClient.Core
         private void SetClientState(GameClientState gameClientState)
         {
             Log.Info($"SetClientState {gameClientState}");
-            _gameClientState = gameClientState;
+            GameClientState = gameClientState;
         }
 
         private void ProcessChannelMessage(GameServerStream current)
@@ -220,6 +249,7 @@ namespace SabberStoneClient.Core
             {
                 case MsgType.Initialisation:
                     SetClientState(GameClientState.Registred);
+                    registerWaiter.SetResult(new object());
                     break;
 
                 case MsgType.Invitation:
@@ -279,7 +309,7 @@ namespace SabberStoneClient.Core
 
         public void Queue(GameType gameType = GameType.Normal, DeckType deckType = DeckType.Random, string deckData = null)
         {
-            if (_gameClientState != GameClientState.Registred)
+            if (GameClientState != GameClientState.Registred)
             {
                 Log.Warn("Client isn't registred.");
                 return;
@@ -310,16 +340,19 @@ namespace SabberStoneClient.Core
         {
             await Task.Run(() =>
             {
-                WriteGameData(MsgType.Invitation, true, new GameData() { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.None });
+                WriteGameData(MsgType.Invitation, true, 
+                    new GameData
+                    {
+                        GameId = _gameId, 
+                        PlayerId = _playerId, 
+                        GameDataType = GameDataType.None
+                    });
             });
         }
 
         public async virtual void ActionCallInitialisation()
         {
-            await Task.Run(() =>
-            {
-                MatchGame();
-            });
+            await Task.Run(MatchGame);
         }
 
         public async virtual void ActionCallPowerChoices()

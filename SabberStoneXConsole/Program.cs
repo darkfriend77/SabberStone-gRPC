@@ -15,7 +15,7 @@ namespace SabberStoneXConsole
     {
         static void Main(string[] args)
         {
-            RunServerWith(2);
+            RunServerWith(12);
             //SimpleTest();
         }
 
@@ -31,7 +31,7 @@ namespace SabberStoneXConsole
             Console.ReadKey();
         }
 
-        public static void RunServerWith(int numberOfClients)
+        public static async void RunServerWith(int numberOfClients)
         {
 
             var port = 50051;
@@ -42,58 +42,53 @@ namespace SabberStoneXConsole
             var matchMaker = server.GetMatchMakerService();
             matchMaker.Start(7);
 
-            List<Task> clientTasks = new List<Task>();
+            Task<GameClient>[] tasks = new Task<GameClient>[numberOfClients];
+            //GameClient[] clients = new GameClient[numberOfClients];
+
             for (int i = 0; i < numberOfClients; i++)
             {
-                clientTasks.Add(CreateGameClientTask(port, $"TestClient{i}", "", new RandomAI()));
-                Thread.Sleep(1000);
+                int index = i;
+
+                tasks[index] = CreateGameClientTask(port, $"TestClient{index}", "", new RandomAI());
             }
 
-            while (clientTasks.Any(p => !p.IsCompleted))
-            {
-                //foreach (var clientTask in clientTasks)
-                //{
-                //    Console.WriteLine($" ... {clientTask.IsCompleted}");
-                //}
 
-                Thread.Sleep(5000);
-            }
-
-            server.Stop();
+            Console.WriteLine("Press any key to stop.");
             Console.ReadKey();
-
+            server.Stop();
         }
 
-        private static async Task CreateGameClientTask(int port, string accountName, string accountpsw, ISabberStoneAI sabberStoneAI, int numberOfGames = 0)
+        private static async Task<GameClient> CreateGameClientTask(int port, string accountName, string accountpsw, ISabberStoneAI sabberStoneAI, int numberOfGames = 0)
         {
-            GameClient client = new GameClient(port, sabberStoneAI);
+            GameClient client = new GameClient(port, sabberStoneAI, accountName);
 
             client.Connect();
 
-            Thread.Sleep(2000);
+            //Thread.Sleep(2000);
 
-            client.Register(accountName, accountpsw);
+            await client.Register(accountName, accountpsw);
 
-            Thread.Sleep(2000);
+
+            //Thread.Sleep(2000);
 
             if (client.GameClientState == GameClientState.Registred)
             {
                 client.Queue();
             }
 
-            var waiter = Task.Run(async () =>
-            {
-                while (client.GameClientState == GameClientState.Queued
-                    || client.GameClientState == GameClientState.InGame)
-                {
-                    Thread.Sleep(2000);
-                };
+            client.StateChanged += Client_StateChanged;
 
-                client.Disconnect();
-                Console.WriteLine($"client[{accountName}]: disconnected.");
-            });
+            return client;
+        }
 
-            await waiter;
+        private static void Client_StateChanged(GameClient client, GameClientState state)
+        {
+            if (state == GameClientState.Queued || state == GameClientState.InGame) return;
+
+            client.StateChanged -= Client_StateChanged;
+            client.Disconnect();
+
+            Console.WriteLine($"client[{client.AccountName}]: disconnected.");
         }
 
 
