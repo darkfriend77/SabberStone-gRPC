@@ -138,18 +138,18 @@ message Minion {
 }
 
 message HandZone {
-    repeated Playable entities = 1;
+    repeated PlayableEntity entities = 1;
 }
 
 message SecretZone {
-    repeated Playable entities = 1;
+    repeated PlayableEntity entities = 1;
 }
 
 message DeckZone {
-    repeated Playable entities = 1;
+    repeated PlayableEntity entities = 1;
 }
 
-message Playable {
+message PlayableEntity {
     int32 card_id = 1;
     int32 cost = 2;
     int32 atk = 3;

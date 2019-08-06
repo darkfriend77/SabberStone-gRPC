@@ -348,7 +348,7 @@ namespace SabberStoneClient.Core
         {
             await Task.Run(() =>
             {
-                MatchGame();
+                //MatchGame();
             });
         }
 

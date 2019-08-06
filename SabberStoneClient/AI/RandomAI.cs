@@ -23,7 +23,8 @@ namespace SabberStoneClient.AI
         public PowerChoices PowerChoices(PowerChoices powerChoices)
         {
             var powerChoicesId = _random.Next(powerChoices.Entities.Count);
-            Log.Info($"SendPowerChoicesChoice[RandomAI] -> choices:{powerChoicesId}");
+            Log.Info($"SendPowerChoicesChoice[RandomAI] -> choices:{powerChoicesId} {powerChoices.ChoiceType}");
+
             return new PowerChoices() { ChoiceType = powerChoices.ChoiceType, Entities = new List<int>() { powerChoices.Entities[powerChoicesId] } };
         }
 

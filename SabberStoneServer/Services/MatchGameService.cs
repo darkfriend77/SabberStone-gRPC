@@ -88,7 +88,7 @@ namespace SabberStoneServer.Services
         public void Start()
         {
             Log.Info($"[_gameId:{GameId}] Game creation is happening in a few seconds!!!");
-            var newGame = new Game(new GameConfig
+            var gameConfig = new GameConfig
             {
                 //StartPlayer = 1,
                 FormatType = FormatType.FT_STANDARD,
@@ -96,12 +96,13 @@ namespace SabberStoneServer.Services
                 Player1Deck = new List<Card>(),
                 Player2HeroClass = Cards.HeroClasses[_random.Next(9)],
                 Player2Deck = new List<Card>(),
-                SkipMulligan = true,
+                SkipMulligan = false,
                 Shuffle = true,
                 FillDecks = true,
                 Logging = true,
                 History = true
-            });
+            };
+            var newGame = new Game(gameConfig);
 
             // don't start when game is null
             if (_game != null)
@@ -129,7 +130,6 @@ namespace SabberStoneServer.Services
             if (Player1.UserState == UserState.InGame && Player2.UserState == UserState.InGame)
             {
                 Start();
-                //Thread.Sleep(500);
 
                 // we send over opponend user info which is reduced to open available informations
                 SendGameData(Player1, MsgType.InGame, true, GameDataType.Initialisation,
@@ -138,7 +138,7 @@ namespace SabberStoneServer.Services
                     JsonConvert.SerializeObject(new List<UserInfo> {Player1.OpenUserInfo(), Player2}));
 
                 SendPowerHistoryToPlayers();
-
+                SendPowerChoicesToPlayers();
                 SendPowerOptionsToPlayers();
             }
         }
@@ -180,8 +180,16 @@ namespace SabberStoneServer.Services
 
                 case GameDataType.PowerChoices:
                     var powerChoices = JsonConvert.DeserializeObject<PowerChoices>(gameData.GameDataObject);
-                    var choiceTask = ProcessPowerChoiceData(powerChoices.ChoiceType, powerChoices.Entities);
+                    var choiceTask = ProcessPowerChoiceData(gameData.PlayerId, powerChoices.ChoiceType, powerChoices.Entities);
                     _game.Process(choiceTask);
+
+                    // if mulligan has been finished!
+                    if (_game.Step == Step.BEGIN_MULLIGAN
+                     && _game.Player1.MulliganState == Mulligan.DONE
+                     && _game.Player2.MulliganState == Mulligan.DONE)
+                    {
+                        _game.MainBegin();
+                    }
 
                     SendPowerHistoryToPlayers();
 
@@ -208,15 +216,19 @@ namespace SabberStoneServer.Services
         {
             // send player history to both players
             string powerHistory = JsonConvert.SerializeObject(_game.PowerHistory.Last);
+            //_game.PowerHistory.Last.ForEach(p => Log.Info(p.Print()));
+
             SendGameData(Player1, MsgType.InGame, true, GameDataType.PowerHistory, powerHistory);
             SendGameData(Player2, MsgType.InGame, true, GameDataType.PowerHistory, powerHistory);
             //Thread.Sleep(100);
+
         }
 
         public void SendPowerOptionsToPlayers()
         {
             _powerAllOptionsPlayer1 = PowerOptionsBuilder.AllOptions(_game, _game.Player1.Options());
             SendGameData(Player1, MsgType.InGame, true, GameDataType.PowerOptions, JsonConvert.SerializeObject(new PowerOptions() { Index = _powerAllOptionsPlayer1.Index, PowerOptionList = _powerAllOptionsPlayer1.PowerOptionList }));
+
             _powerAllOptionsPlayer2 = PowerOptionsBuilder.AllOptions(_game, _game.Player2.Options());
             SendGameData(Player2, MsgType.InGame, true, GameDataType.PowerOptions, JsonConvert.SerializeObject(new PowerOptions() { Index = _powerAllOptionsPlayer2.Index, PowerOptionList = _powerAllOptionsPlayer2.PowerOptionList }));
             //Thread.Sleep(100);
@@ -226,14 +238,16 @@ namespace SabberStoneServer.Services
         {
             if (_game.Player1.Choice != null)
             {
+                //Log.Debug($"sending Choices to player 1");
                 SendGameData(Player1, MsgType.InGame, true, GameDataType.PowerChoices, JsonConvert.SerializeObject(new PowerChoices() { ChoiceType = _game.Player1.Choice.ChoiceType, Entities = _game.Player1.Choice.Choices }));
             }
 
             if (_game.Player2.Choice != null)
             {
+                //Log.Debug($"sending Choices to player 2");
                 SendGameData(Player2, MsgType.InGame, true, GameDataType.PowerChoices, JsonConvert.SerializeObject(new PowerChoices() { ChoiceType = _game.Player2.Choice.ChoiceType, Entities = _game.Player2.Choice.Choices }));
             }
-            //Thread.Sleep(100);
+
         }
 
         public void SendGameData(UserDataInfo player, MsgType messageType, bool messageState, GameDataType gameDataType, string gameDataObject = "")
@@ -250,7 +264,6 @@ namespace SabberStoneServer.Services
 
             try
             {
-
                 player.ResponseStream.WriteAsync(new GameServerStream()
                 {
                     MessageType = messageType,
@@ -343,12 +356,12 @@ namespace SabberStoneServer.Services
             return task;
         }
 
-        private PlayerTask ProcessPowerChoiceData(ChoiceType choiceType, List<int> entities)
+        private PlayerTask ProcessPowerChoiceData(int PlayerId, ChoiceType choiceType, List<int> entities)
         {
             switch (choiceType)
             {
                 case ChoiceType.MULLIGAN:
-                    return ChooseTask.Mulligan(_game.CurrentPlayer, entities);
+                    return ChooseTask.Mulligan(_game.Player1.PlayerId == PlayerId ? _game.Player1 : _game.Player2.PlayerId == PlayerId ? _game.Player2 : null, entities);
 
                 case ChoiceType.GENERAL:
                     return ChooseTask.Pick(_game.CurrentPlayer, entities[0]);

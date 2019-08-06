@@ -81,11 +81,11 @@ namespace SabberStoneServer.Services
             return result;
         }
 
-        private Playable GetPlayable(IPlayable playable, bool hand)
+        private PlayableEntity GetPlayable(IPlayable playable, bool hand)
         {
             bool isCharacter = playable is Character;
             Character c = isCharacter ? playable as Character : null;
-            return new Playable()
+            return new PlayableEntity()
             {
                 CardId = playable.Card.AssetId,
                 Cost = playable.Cost,
