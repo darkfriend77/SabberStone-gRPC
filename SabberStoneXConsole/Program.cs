@@ -15,7 +15,7 @@ namespace SabberStoneXConsole
     {
         static void Main(string[] args)
         {
-            RunServerWith(12);
+            RunServerWith(1);
             //SimpleTest();
         }
 
