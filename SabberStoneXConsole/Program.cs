@@ -15,7 +15,7 @@ namespace SabberStoneXConsole
     {
         static void Main(string[] args)
         {
-            RunServerWith(1);
+            RunServerWith(2);
             //SimpleTest();
         }
 
@@ -59,7 +59,7 @@ namespace SabberStoneXConsole
 
         private static async Task<GameClient> CreateGameClientTask(int port, string accountName, string accountpsw, ISabberStoneAI sabberStoneAI, int numberOfGames = 0)
         {
-            GameClient client = new GameClient(port, sabberStoneAI, accountName);
+            GameClient client = new GameClient(port, sabberStoneAI, accountName, true);
 
             client.Connect();
 

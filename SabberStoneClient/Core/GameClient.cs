@@ -7,6 +7,7 @@ using SabberStoneCore.Kettle;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -35,9 +36,18 @@ namespace SabberStoneClient.Core
             get => _gameClientState;
             private set
             {
-                Log.Info($"SetClientState {value}");
-                StateChanged?.Invoke(this, value);
+                var oldValue = _gameClientState;
+
                 _gameClientState = value;
+                StateChanged?.Invoke(this, value);
+                ActionGameClientStateChange(oldValue, value);
+
+                if (oldValue == GameClientState.InGame && value != GameClientState.InGame)
+                {
+                    // game left clean up
+                    AfterInGame();
+                }
+
             }
         }
 
@@ -51,6 +61,8 @@ namespace SabberStoneClient.Core
 
         private int _playerId;
 
+        private bool _logGames;
+
         private List<UserInfo> _userInfos;
 
         private TaskCompletionSource<object> registerWaiter;
@@ -63,6 +75,8 @@ namespace SabberStoneClient.Core
 
         public UserInfo OpUserInfo => _userInfos.FirstOrDefault(p => p.PlayerId != _playerId);
 
+        private List<string> _fullGameHistory { get; }
+
         public ConcurrentQueue<IPowerHistoryEntry> HistoryEntries { get; }
 
         public PowerChoices PowerChoices { get; private set; }
@@ -71,7 +85,7 @@ namespace SabberStoneClient.Core
 
         private ISabberStoneAI _sabberStoneAI;
 
-        public GameClient(int port, ISabberStoneAI sabberStoneAI, string accountName = "")
+        public GameClient(int port, ISabberStoneAI sabberStoneAI, string accountName = "", bool logGames = false)
         {
             _port = port;
             _sabberStoneAI = sabberStoneAI ?? new RandomAI();
@@ -81,9 +95,12 @@ namespace SabberStoneClient.Core
 
             _gameId = -1;
             _playerId = -1;
+            _logGames = logGames;
+
             _userInfos = new List<UserInfo>();
 
             AccountName = accountName;
+            _fullGameHistory = new List<string>();
             HistoryEntries = new ConcurrentQueue<IPowerHistoryEntry>();
             PowerOptionList = new List<PowerOption>();
         }
@@ -275,6 +292,7 @@ namespace SabberStoneClient.Core
 
                         case GameDataType.PowerHistory:
                             List<IPowerHistoryEntry> powerHistoryEntries = JsonConvert.DeserializeObject<List<IPowerHistoryEntry>>(gameData.GameDataObject, new PowerHistoryConverter());
+                            _fullGameHistory.Add(gameData.GameDataObject);
                             powerHistoryEntries.ForEach(p => HistoryEntries.Enqueue(p));
                             break;
 
@@ -334,6 +352,35 @@ namespace SabberStoneClient.Core
             }
 
             GameClientState = GameClientState.Queued;
+        }
+
+        private void AfterInGame()
+        {
+            if (_logGames && _fullGameHistory.Any())
+            {
+                var gameLogFilename = $"GAME-{MyUserInfo.GameId}-{MyUserInfo.PlayerId}-{DateTime.Now.Ticks}.log";
+                var gameLogFilePath = Path.Combine(Directory.GetCurrentDirectory(), gameLogFilename);
+                Log.Info($"Writing game log to {gameLogFilePath}.");
+                File.WriteAllText(gameLogFilePath, JsonConvert.SerializeObject(_fullGameHistory));
+            }
+
+            // clean up
+            _userInfos.Clear();
+            _fullGameHistory.Clear();
+            while (!HistoryEntries.IsEmpty)
+            {
+                HistoryEntries.TryDequeue(out _);
+            }
+            PowerChoices = null;
+            PowerOptionList.Clear();
+        }
+
+        public async virtual void ActionGameClientStateChange(GameClientState oldState, GameClientState newState)
+        {
+            await Task.Run(() =>
+            {
+                Log.Info($"GameClientStateChange: {oldState} -> {newState}");
+            });
         }
 
         public async virtual void ActionCallInvitation()
