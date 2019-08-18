@@ -2,9 +2,9 @@
 using SabberStoneCore.Kettle;
 using System.Collections.Generic;
 
-namespace SabberStoneClient.AI
+namespace SabberStoneClient.Interface
 {
-    public interface ISabberStoneAI
+    public interface IGameAI
     {
         PowerOptionChoice PowerOptions(List<PowerOption> powerOptionList);
         PowerChoices PowerChoices(PowerChoices powerChoices);

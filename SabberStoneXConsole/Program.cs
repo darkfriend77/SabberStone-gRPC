@@ -1,6 +1,6 @@
 ﻿using Grpc.Core;
 using SabberStoneClient;
-using SabberStoneClient.AI;
+using SabberStoneClient.Interface;
 using SabberStoneClient.Core;
 using SabberStoneServer.Core;
 using System;
@@ -57,7 +57,7 @@ namespace SabberStoneXConsole
             server.Stop();
         }
 
-        private static async Task<GameClient> CreateGameClientTask(int port, string accountName, string accountpsw, ISabberStoneAI sabberStoneAI, int numberOfGames = 0)
+        private static async Task<GameClient> CreateGameClientTask(int port, string accountName, string accountpsw, IGameAI sabberStoneAI, int numberOfGames = 0)
         {
             GameClient client = new GameClient(port, sabberStoneAI, accountName, true);
 

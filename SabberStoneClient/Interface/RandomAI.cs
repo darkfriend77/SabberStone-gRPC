@@ -7,9 +7,9 @@ using SabberStoneClient.Core;
 using SabberStoneContract.Model;
 using SabberStoneCore.Kettle;
 
-namespace SabberStoneClient.AI
+namespace SabberStoneClient.Interface
 {
-    public class RandomAI : ISabberStoneAI
+    public class RandomAI : IGameAI
     {
         private static readonly ILog Log = Logger.Instance.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 

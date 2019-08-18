@@ -1,7 +1,7 @@
 ﻿using Grpc.Core;
 using log4net;
 using Newtonsoft.Json;
-using SabberStoneClient.AI;
+using SabberStoneClient.Interface;
 using SabberStoneContract.Model;
 using SabberStoneCore.Kettle;
 using System;
@@ -83,9 +83,9 @@ namespace SabberStoneClient.Core
 
         public List<PowerOption> PowerOptionList { get; private set; }
 
-        private ISabberStoneAI _sabberStoneAI;
+        private IGameAI _sabberStoneAI;
 
-        public GameClient(int port, ISabberStoneAI sabberStoneAI, string accountName = "", bool logGames = false)
+        public GameClient(int port, IGameAI sabberStoneAI, string accountName = "", bool logGames = false)
         {
             _port = port;
             _sabberStoneAI = sabberStoneAI ?? new RandomAI();
