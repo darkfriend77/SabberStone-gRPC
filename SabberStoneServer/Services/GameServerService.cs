@@ -35,11 +35,11 @@ namespace SabberStoneServer.Services
             _registredUsers = new ConcurrentDictionary<string, UserDataInfo>();
         }
 
-        public override Task<PingReply> Ping(PingRequest request, ServerCallContext context)
+        public override Task<ServerReply> Ping(PingRequest request, ServerCallContext context)
         {
             Log.Info(context.Peer);
 
-            var reply = new PingReply
+            var reply = new ServerReply
             {
                 RequestState = true,
                 RequestMessage = "Ping",
@@ -48,13 +48,22 @@ namespace SabberStoneServer.Services
             return Task.FromResult(reply);
         }
 
+        enum BadRequestType
+        {
+            INVALID_ACCOUNT,
+            SAME_PEER_REGISTRED,
+            DIFF_PEER_REGISTRED
+        }
+
         public override Task<AuthReply> Authentication(AuthRequest request, ServerCallContext context)
         {
             // invalid accountname
             if (request.AccountName == null || request.AccountName.Length < 3)
             {
-                Log.Warn($"{request.AccountName} is invalid!");
-                return Task.FromResult(new AuthReply() { RequestState = false });
+                return Task.FromResult(new AuthReply()
+                {
+                    ServerReply = GetServerReply(context.Peer, BadRequestType.INVALID_ACCOUNT)
+                });
             }
 
             var user = _registredUsers.Values.ToList().Find(p => p.AccountName == request.AccountName);
@@ -64,13 +73,11 @@ namespace SabberStoneServer.Services
             {
                 if (user.Peer.Equals(context.Peer))
                 {
-                    Log.Warn($"{request.AccountName} is already registred, with the same peer!");
-                    return Task.FromResult(new AuthReply { RequestState = false });
+                    return Task.FromResult(new AuthReply() { ServerReply = GetServerReply(context.Peer, BadRequestType.SAME_PEER_REGISTRED) });
                 }
 
                 // TODO same account with a new connection
-                Log.Warn($"{request.AccountName} is already registred, with a different peer!");
-                return Task.FromResult(new AuthReply { RequestState = false });
+                return Task.FromResult(new AuthReply() { ServerReply = GetServerReply(context.Peer, BadRequestType.DIFF_PEER_REGISTRED) });
             }
 
             var sessionId = NextSessionIndex;
@@ -93,15 +100,14 @@ namespace SabberStoneServer.Services
             if (!_registredUsers.TryAdd(userInfo.Token, userInfo))
             {
                 Log.Warn($"failed to register user with account {request.AccountName}!");
-                return Task.FromResult(new AuthReply { RequestState = false });
+                return Task.FromResult(new AuthReply() { ServerReply = new ServerReply() { RequestState = false } });
             }
 
             Log.Info($"Successfully registred user with account {request.AccountName}!");
 
             var reply = new AuthReply
             {
-                RequestState = true,
-                RequestMessage = string.Empty,
+                ServerReply = new ServerReply() { RequestState = true },
                 SessionId = userInfo.SessionId,
                 SessionToken = userInfo.Token
             };
@@ -109,22 +115,45 @@ namespace SabberStoneServer.Services
             return Task.FromResult(reply);
         }
 
+        private ServerReply GetServerReply(string peer, BadRequestType badRequestType)
+        {
+            var serverReply = new ServerReply()
+            {
+                RequestState = false,
+                RequestMessage = "unknown bad request"
+            };
+            switch (badRequestType)
+            {
+                case BadRequestType.INVALID_ACCOUNT:
+                    serverReply.RequestMessage = "invalid authentification";
+                    break;
+                case BadRequestType.SAME_PEER_REGISTRED:
+                    serverReply.RequestMessage = "already registred same peer";
+                    break;
+                case BadRequestType.DIFF_PEER_REGISTRED:
+                    serverReply.RequestMessage = "already registred different peer";
+                    break;
+            }
+            Log.Warn($"{peer}:[{badRequestType}] {serverReply.RequestMessage}");
+            return serverReply;
+        }
+
         public override Task<MatchGameReply> MatchGame(MatchGameRequest request, ServerCallContext context)
         {
             if (!TokenAuthentification(context.RequestHeaders, out string clientTokenValue))
             {
-                return Task.FromResult(new MatchGameReply() { RequestState = false });
+                return Task.FromResult(new MatchGameReply() { ServerReply = new ServerReply() { RequestState = false } });
             }
 
             if (!_registredUsers.TryGetValue(clientTokenValue, out UserDataInfo userDataInfo))
             {
                 Log.Info($"couldn't get user data info!");
-                return Task.FromResult(new MatchGameReply() { RequestState = false });
+                return Task.FromResult(new MatchGameReply() { ServerReply = new ServerReply() { RequestState = false } });
             }
 
             return Task.FromResult(new MatchGameReply()
             {
-                RequestState = true,
+                ServerReply = new ServerReply() { RequestState = true },
                 MatchGame = GetMatchGame(userDataInfo.GameId, userDataInfo.PlayerId)
             });
         }
@@ -201,11 +230,55 @@ namespace SabberStoneServer.Services
             }
         }
 
-        public override Task<QueueReply> GameQueue(QueueRequest request, ServerCallContext context)
+        public override async Task GameStateChannel(GameStateStreamRequest gameStateStreamRequest, IServerStreamWriter<GameStateStream> responseStream, ServerCallContext context)
         {
             if (!TokenAuthentification(context.RequestHeaders, out string clientTokenValue))
             {
-                return Task.FromResult(new QueueReply
+                return;
+            }
+
+            if (!_registredUsers.TryGetValue(clientTokenValue, out UserDataInfo userDataInfo))
+            {
+                Log.Info($"couldn't get user data info!");
+                return;
+            }
+
+            //if (ClientManager.ClientDictionary.ContainsKey(clientTokenValue))
+            //{
+            //    Log.Info($"bad game server channel request, token already registred!");
+            //    return;
+            //}
+
+            //if (!ClientManager.ClientDictionary.TryAdd(clientTokenValue,
+            //    new Client(requestStream, responseStream, context)))
+            //{
+            //    Log.Info($"bad game server channel request, couldn't add to client manager!");
+            //    return;
+            //};
+
+            // adding the response stream to user data
+            //userDataInfo.ResponseStream = responseStream;
+
+            var requestStreamReader = Task.Run(async () =>
+            {
+                Log.Info($"gamestate channel opened for user!");
+                while (true)
+                {
+                    await responseStream.WriteAsync(new GameStateStream() { Message = $"tick tack .... game state {userDataInfo.UserState} !!!" });
+                    Thread.Sleep(1000);
+                }
+
+            });
+
+            await requestStreamReader;
+            Log.Info($"game state channel closed for user!");
+        }
+
+        public override Task<ServerReply> GameQueue(QueueRequest request, ServerCallContext context)
+        {
+            if (!TokenAuthentification(context.RequestHeaders, out string clientTokenValue))
+            {
+                return Task.FromResult(new ServerReply
                 {
                     RequestState = false,
                     RequestMessage = string.Empty
@@ -215,7 +288,7 @@ namespace SabberStoneServer.Services
             if (!_registredUsers.TryGetValue(clientTokenValue, out UserDataInfo userDataInfo))
             {
                 Log.Info($"couldn't get user data info!");
-                return Task.FromResult(new QueueReply
+                return Task.FromResult(new ServerReply
                 {
                     RequestState = false,
                     RequestMessage = string.Empty
@@ -225,7 +298,7 @@ namespace SabberStoneServer.Services
             if (!ClientManager.ClientDictionary.TryGetValue(clientTokenValue, out Client _))
             {
                 Log.Info($"User hasn't established a channel initialisation!");
-                return Task.FromResult(new QueueReply
+                return Task.FromResult(new ServerReply
                 {
                     RequestState = false,
                     RequestMessage = string.Empty
@@ -237,7 +310,7 @@ namespace SabberStoneServer.Services
             userDataInfo.DeckType = request.DeckType;
             userDataInfo.DeckData = request.DeckData;
 
-            return Task.FromResult(new QueueReply
+            return Task.FromResult(new ServerReply
             {
                 RequestState = true,
                 RequestMessage = string.Empty

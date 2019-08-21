@@ -121,10 +121,9 @@ namespace SabberStoneClient.Core
             }
 
             var authReply = _client.Authentication(new AuthRequest { AccountName = accountName, AccountPsw = accountPsw });
-
-            if (!authReply.RequestState)
+            if (!authReply.ServerReply.RequestState)
             {
-                Log.Warn("Bad RegisterRequest.");
+                Log.Warn(authReply.ServerReply.RequestMessage);
                 return;
             }
 
@@ -132,6 +131,8 @@ namespace SabberStoneClient.Core
             _sessionToken = authReply.SessionToken;
 
             GameServerChannel();
+
+            GameStateChannel();
 
             registerWaiter = new TaskCompletionSource<object>();
             await registerWaiter.Task;
@@ -149,7 +150,7 @@ namespace SabberStoneClient.Core
 
             var matchGameReply = _client.MatchGame(new MatchGameRequest { GameId = _gameId }, new Metadata { new Metadata.Entry("token", _sessionToken) });
 
-            if (!matchGameReply.RequestState)
+            if (!matchGameReply.ServerReply.RequestState)
             {
                 Log.Warn("Bad MatchGameRequest.");
                 return;
@@ -157,6 +158,25 @@ namespace SabberStoneClient.Core
 
             // TODO do something with the game object ...
             Log.Info($"Got match game successfully.");
+        }
+
+        public async void GameStateChannel()
+        {
+            using (var call = _client.GameStateChannel(new GameStateStreamRequest(), new Metadata { new Metadata.Entry("token", _sessionToken) }))
+            {
+                var responseStream = call.ResponseStream;
+                // listen to game server
+                var response = Task.Run(async () => {
+                    while (await responseStream.MoveNext(CancellationToken.None))
+                    {
+                        Log.Info(responseStream.Current.Message);
+                    }
+
+                    Log.Info("### GameStateChannel got terminated!!! ###");
+                });
+
+                await response;
+            }
         }
 
         public async void GameServerChannel()
