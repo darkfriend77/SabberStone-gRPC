@@ -52,11 +52,11 @@ namespace SabberStoneXTest.ServerTest
 
             var reply1 = client.Authentication(new AuthRequest { AccountName = "Test", AccountPsw = string.Empty });
 
-            Assert.True(reply1.ServerReply.RequestState);
+            Assert.True(reply1.RequestState);
             Assert.Equal(10000, reply1.SessionId);
 
             var reply2 = client.Authentication(new AuthRequest { AccountName = "Test", AccountPsw = string.Empty });
-            Assert.False(reply2.ServerReply.RequestState);
+            Assert.False(reply2.RequestState);
 
             _server.Stop();
         }
@@ -74,7 +74,7 @@ namespace SabberStoneXTest.ServerTest
 
             var reply1 = client1.Authentication(new AuthRequest { AccountName = "Test", AccountPsw = string.Empty });
 
-            Assert.True(reply1.ServerReply.RequestState);
+            Assert.True(reply1.RequestState);
             Assert.Equal(10000, reply1.SessionId);
 
             // Initialisation
@@ -121,7 +121,7 @@ namespace SabberStoneXTest.ServerTest
 
             var reply1 = client1.Authentication(new AuthRequest { AccountName = "Test", AccountPsw = string.Empty });
 
-            Assert.True(reply1.ServerReply.RequestState);
+            Assert.True(reply1.RequestState);
             Assert.Equal(10000, reply1.SessionId);
 
             using (var call = client1.GameServerChannel(headers: new Metadata { new Metadata.Entry("token", reply1.SessionToken) }))

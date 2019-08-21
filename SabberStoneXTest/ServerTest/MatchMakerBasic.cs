@@ -34,7 +34,7 @@ namespace SabberStoneXTest.ServerTest
 
             var reply11 = client1.Authentication(new AuthRequest { AccountName = "Test1", AccountPsw = string.Empty });
 
-            Assert.True(reply11.ServerReply.RequestState);
+            Assert.True(reply11.RequestState);
             Assert.Equal(10000, reply11.SessionId);
 
             // init client1
@@ -73,7 +73,7 @@ namespace SabberStoneXTest.ServerTest
 
             var reply21 = client2.Authentication(new AuthRequest { AccountName = "Test2", AccountPsw = string.Empty });
 
-            Assert.True(reply21.ServerReply.RequestState);
+            Assert.True(reply21.RequestState);
             Assert.Equal(10001, reply21.SessionId);
 
             // init client2

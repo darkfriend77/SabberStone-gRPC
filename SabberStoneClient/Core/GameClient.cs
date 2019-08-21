@@ -1,7 +1,7 @@
 ﻿using Grpc.Core;
 using log4net;
 using Newtonsoft.Json;
-using SabberStoneClient.Interface;
+using SabberStoneClient.AI;
 using SabberStoneContract.Model;
 using SabberStoneCore.Kettle;
 using System;
@@ -39,7 +39,7 @@ namespace SabberStoneClient.Core
                 var oldValue = _gameClientState;
 
                 _gameClientState = value;
-                StateChanged?.Invoke(this, value);
+
                 ActionGameClientStateChange(oldValue, value);
 
                 if (oldValue == GameClientState.InGame && value != GameClientState.InGame)
@@ -50,8 +50,6 @@ namespace SabberStoneClient.Core
 
             }
         }
-
-        private IClientStreamWriter<GameServerStream> _writeStream;
 
         private int _sessionId;
 
@@ -64,10 +62,6 @@ namespace SabberStoneClient.Core
         private bool _logGames;
 
         private List<UserInfo> _userInfos;
-
-        private TaskCompletionSource<object> registerWaiter;
-
-        public event Action<GameClient, GameClientState> StateChanged;
 
         public string AccountName { get; private set; }
 
@@ -83,9 +77,11 @@ namespace SabberStoneClient.Core
 
         public List<PowerOption> PowerOptionList { get; private set; }
 
-        private IGameAI _sabberStoneAI;
+        private ISabberStoneAI _sabberStoneAI;
 
-        public GameClient(int port, IGameAI sabberStoneAI, string accountName = "", bool logGames = false)
+        private ConcurrentQueue<GameServerStream> _gameServerStream;
+
+        public GameClient(int port, ISabberStoneAI sabberStoneAI, string accountName = "", bool logGames = false)
         {
             _port = port;
             _sabberStoneAI = sabberStoneAI ?? new RandomAI();
@@ -112,7 +108,7 @@ namespace SabberStoneClient.Core
             GameClientState = GameClientState.Connected;
         }
 
-        public async Task Register(string accountName, string accountPsw)
+        public void Register(string accountName, string accountPsw)
         {
             if (GameClientState != GameClientState.Connected)
             {
@@ -121,9 +117,10 @@ namespace SabberStoneClient.Core
             }
 
             var authReply = _client.Authentication(new AuthRequest { AccountName = accountName, AccountPsw = accountPsw });
-            if (!authReply.ServerReply.RequestState)
+
+            if (!authReply.RequestState)
             {
-                Log.Warn(authReply.ServerReply.RequestMessage);
+                Log.Warn("Bad RegisterRequest.");
                 return;
             }
 
@@ -132,10 +129,7 @@ namespace SabberStoneClient.Core
 
             GameServerChannel();
 
-            GameStateChannel();
-
-            registerWaiter = new TaskCompletionSource<object>();
-            await registerWaiter.Task;
+            GameClientState = GameClientState.Registred;
 
             Log.Info($"Register done.");
         }
@@ -150,7 +144,7 @@ namespace SabberStoneClient.Core
 
             var matchGameReply = _client.MatchGame(new MatchGameRequest { GameId = _gameId }, new Metadata { new Metadata.Entry("token", _sessionToken) });
 
-            if (!matchGameReply.ServerReply.RequestState)
+            if (!matchGameReply.RequestState)
             {
                 Log.Warn("Bad MatchGameRequest.");
                 return;
@@ -160,76 +154,60 @@ namespace SabberStoneClient.Core
             Log.Info($"Got match game successfully.");
         }
 
-        public async void GameStateChannel()
-        {
-            using (var call = _client.GameStateChannel(new GameStateStreamRequest(), new Metadata { new Metadata.Entry("token", _sessionToken) }))
-            {
-                var responseStream = call.ResponseStream;
-                // listen to game server
-                var response = Task.Run(async () => {
-                    while (await responseStream.MoveNext(CancellationToken.None))
-                    {
-                        Log.Info(responseStream.Current.Message);
-                    }
-
-                    Log.Info("### GameStateChannel got terminated!!! ###");
-                });
-
-                await response;
-            }
-        }
-
         public async void GameServerChannel()
         {
             using (var call = _client.GameServerChannel(headers: new Metadata { new Metadata.Entry("token", _sessionToken) }))
             {
-                // listen to game server
-                var response = Task.Run(async () =>
+
+                _gameServerStream = new ConcurrentQueue<GameServerStream>();
+
+                var requestStreamWriter = Task.Run(async () =>
+                {
+                    while (_gameServerStream != null)
+                    {
+                        if (_gameServerStream.TryDequeue(out GameServerStream gameServerStream))
+                        {
+                            await call.RequestStream.WriteAsync(gameServerStream);
+                        }
+                    }
+                });
+
+                var responseStreamReader = Task.Run(async () =>
                 {
                     while (await call.ResponseStream.MoveNext(CancellationToken.None) && GameClientState != GameClientState.None)
                     {
-                        try
-                        {
-                            ProcessChannelMessage(call.ResponseStream.Current);
-                        }
-                        catch
-                        {
-                            ;
-                        }
-
+                        ProcessChannelMessage(call.ResponseStream.Current);
                     };
                 });
 
-                _writeStream = call.RequestStream;
-                await WriteGameServerStream(MsgType.Initialisation, true, string.Empty);
+                await requestStreamWriter;
 
-                //await call.RequestStream.CompleteAsync();
-                await response;
+                await responseStreamReader;
             }
         }
 
-        public async Task WriteGameServerStream(MsgType messageType, bool messageState, string message)
+        public void WriteGameServerStream(MsgType messageType, bool messageState, string message)
         {
-            if (_writeStream == null)
+            if (_gameServerStream == null)
             {
                 Log.Warn($"There is no write stream currently.");
                 return;
             }
 
-            await _writeStream.WriteAsync(new GameServerStream
+            _gameServerStream.Enqueue(new GameServerStream
             {
                 MessageType = messageType,
                 MessageState = messageState,
                 Message = message
             });
 
-            Log.Debug($"{AccountName} sent [{messageType}]");
+            //Log.Debug($"{AccountName} sent [{messageType}]");
         }
 
         public void WriteGameData(MsgType messageType, bool messageState, GameData gameData)
         {
             // waiting on sending before going on ...
-            WriteGameServerStream(messageType, messageState, JsonConvert.SerializeObject(gameData)).Wait();
+            WriteGameServerStream(messageType, messageState, JsonConvert.SerializeObject(gameData));
         }
 
         public void SendInvitationReply(bool accept)
@@ -253,9 +231,9 @@ namespace SabberStoneClient.Core
 
         public async void Disconnect()
         {
-            if (_writeStream != null)
+            if (_gameServerStream != null)
             {
-                await _writeStream.CompleteAsync();
+                _gameServerStream = null;
             }
 
             GameClientState = GameClientState.None;
@@ -285,8 +263,8 @@ namespace SabberStoneClient.Core
             switch (current.MessageType)
             {
                 case MsgType.Initialisation:
-                    GameClientState = GameClientState.Registred;
-                    registerWaiter.SetResult(new object());
+                    //GameClientState = GameClientState.Registred;
+                    //registerWaiter.SetResult(new object());
                     break;
 
                 case MsgType.Invitation:

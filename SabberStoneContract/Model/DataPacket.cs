@@ -2,6 +2,7 @@
 using SabberStoneCore.Enums;
 using SabberStoneCore.Kettle;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
 
@@ -24,26 +25,12 @@ namespace SabberStoneContract.Model
         Quit
     }
 
-    public struct MessageLog
-    {
-        public MsgType Type;
-        public bool State;
-        public GameDataType GameDataType;
-        public string GameDataObject;
-
-        public override string ToString()
-        {
-            return $"[{Type}][{GameDataType}]";
-        }
-    }
-
     public class UserDataInfo : UserInfo
     {
         public virtual string Token { get; set; }
         public virtual string Peer { get; set; }
-        public virtual IServerStreamWriter<GameServerStream> ResponseStream { get; set; }
 
-        public Stack<MessageLog> Logs = new Stack<MessageLog>();
+        public ConcurrentQueue<GameServerStream> responseQueue;
     }
 
     public class UserInfo

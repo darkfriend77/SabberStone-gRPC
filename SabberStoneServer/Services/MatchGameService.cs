@@ -133,9 +133,9 @@ namespace SabberStoneServer.Services
 
                 // we send over opponend user info which is reduced to open available informations
                 SendGameData(Player1, MsgType.InGame, true, GameDataType.Initialisation,
-                    JsonConvert.SerializeObject(new List<UserInfo> {Player1, Player2.OpenUserInfo()}));
+                    JsonConvert.SerializeObject(new List<UserInfo> { Player1, Player2.OpenUserInfo() }));
                 SendGameData(Player2, MsgType.InGame, true, GameDataType.Initialisation,
-                    JsonConvert.SerializeObject(new List<UserInfo> {Player1.OpenUserInfo(), Player2}));
+                    JsonConvert.SerializeObject(new List<UserInfo> { Player1.OpenUserInfo(), Player2 }));
 
                 SendHistoryToPlayers();
                 SendOptionsOrChoicesToPlayers();
@@ -250,36 +250,18 @@ namespace SabberStoneServer.Services
 
         public void SendGameData(UserDataInfo player, MsgType messageType, bool messageState, GameDataType gameDataType, string gameDataObject = "")
         {
-            var log = new MessageLog
+            player.responseQueue.Enqueue(new GameServerStream()
             {
-                Type = messageType,
-                State = messageState,
-                GameDataType = gameDataType,
-                GameDataObject = gameDataObject
-            };
-            player.Logs.Push(log);
-            //Log.Debug($"Server sent {log} to {player.AccountName}");
-
-            try
-            {
-                player.ResponseStream.WriteAsync(new GameServerStream()
+                MessageType = messageType,
+                MessageState = messageState,
+                Message = JsonConvert.SerializeObject(new GameData()
                 {
-                    MessageType = messageType,
-                    MessageState = messageState,
-                    Message = JsonConvert.SerializeObject(new GameData()
-                    {
-                        GameId = GameId,
-                        PlayerId = player.PlayerId,
-                        GameDataType = gameDataType,
-                        GameDataObject = gameDataObject
-                    })
-                }).Wait();
-            }
-            catch
-            {
-                ;
-            }
-
+                    GameId = GameId,
+                    PlayerId = player.PlayerId,
+                    GameDataType = gameDataType,
+                    GameDataObject = gameDataObject
+                })
+            });
         }
 
         public void Stop()

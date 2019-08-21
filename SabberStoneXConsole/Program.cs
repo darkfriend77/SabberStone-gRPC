@@ -1,6 +1,6 @@
 ﻿using Grpc.Core;
 using SabberStoneClient;
-using SabberStoneClient.Interface;
+using SabberStoneClient.AI;
 using SabberStoneClient.Core;
 using SabberStoneServer.Core;
 using System;
@@ -15,7 +15,7 @@ namespace SabberStoneXConsole
     {
         static void Main(string[] args)
         {
-            RunServerWith(12);
+            RunServerWith(2);
             //SimpleTest();
         }
 
@@ -57,74 +57,32 @@ namespace SabberStoneXConsole
             server.Stop();
         }
 
-        private static async Task<GameClient> CreateGameClientTask(int port, string accountName, string accountpsw, IGameAI sabberStoneAI, int numberOfGames = 0)
+        private static async Task<GameClient> CreateGameClientTask(int port, string accountName, string accountpsw, ISabberStoneAI sabberStoneAI, int numberOfGames = 0)
         {
             GameClient client = new GameClient(port, sabberStoneAI, accountName, true);
 
             client.Connect();
 
-            //Thread.Sleep(2000);
-
-            await client.Register(accountName, accountpsw);
-
-
-            //Thread.Sleep(2000);
+            client.Register(accountName, accountpsw);
 
             if (client.GameClientState == GameClientState.Registred)
             {
                 client.Queue();
             }
 
-            client.StateChanged += Client_StateChanged;
+            await Task.Run(() =>
+            {
+                while (client.GameClientState != GameClientState.None)
+                {
+                    Thread.Sleep(1000);
+                }
+                client.Disconnect();
+
+                Console.WriteLine($"client[{client.AccountName}]: disconnected.");
+            });
 
             return client;
         }
 
-        private static void Client_StateChanged(GameClient client, GameClientState state)
-        {
-            if (state == GameClientState.Queued
-             || state == GameClientState.Invited
-             || state == GameClientState.InGame) return;
-
-            client.StateChanged -= Client_StateChanged;
-            client.Disconnect();
-
-            Console.WriteLine($"client[{client.AccountName}]: disconnected.");
-        }
-
-
-        //private static int index = 1;
-
-        //private static async Task CreateClientTask(string target, GameServerStream gameServerStream, int sleepMs)
-        //{
-        //    var channel = new Channel(target, ChannelCredentials.Insecure);
-        //    var client = new GameServerService.GameServerServiceClient(channel);
-
-        //    // authentificate
-        //    var reply1 = client.Authentication(new AuthRequest { AccountName = $"Test::{index++}", AccountPsw = string.Empty });
-
-        //    using (var call = client.GameServerChannel(headers: new Metadata { new Metadata.Entry("token", reply1.SessionToken) }))
-        //    {
-        //        var request = Task.Run(async () =>
-        //        {
-        //            for (int i = 0; i < 10; i++)
-        //            {
-        //                Thread.Sleep(sleepMs);
-        //                await call.RequestStream.WriteAsync(gameServerStream);
-        //            }
-        //        });
-        //        var response = Task.Run(async () =>
-        //        {
-        //            while (await call.ResponseStream.MoveNext(CancellationToken.None))
-        //            {
-        //                Console.WriteLine($"{call.ResponseStream.Current.Message}");
-        //            };
-        //        });
-
-        //        await request;
-        //        //await response;
-        //    }
-
-        //}
     }
 }

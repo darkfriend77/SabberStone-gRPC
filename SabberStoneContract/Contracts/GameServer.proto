@@ -3,61 +3,29 @@
 // The greeting service definition.
 service GameServerService {
 
-	rpc Ping (PingRequest) returns (ServerReply) {}
+	rpc Ping (PingRequest) returns (PingReply) {}
 
 	rpc Authentication (AuthRequest) returns (AuthReply) {}
 
-	rpc GameQueue (QueueRequest) returns (ServerReply) {}
+	rpc GameQueue (QueueRequest) returns (QueueReply) {}
 
 	rpc MatchGame(MatchGameRequest) returns (MatchGameReply) {}
 
 	rpc GameServerChannel (stream GameServerStream) returns (stream GameServerStream) {}
-
-	rpc GameStateChannel (GameStateStreamRequest) returns (stream GameStateStream) {}
 }
 
-message ServerReply {
-	bool requestState = 1;
-	string requestMessage = 2;
-}
-
-message PingRequest {
-	string message = 1;
-}
-message AuthRequest {
-	string accountName = 1;
-	string accountPsw = 2;
-}
-message AuthReply {
-	ServerReply serverReply = 1;
-	int32 sessionId = 2;
-	string sessionToken = 3;
-}
 enum GameType
 {
 	Normal = 0;
 	Ranked = 1;
 }
+
 enum DeckType
 {
 	None = 0;
 	Random = 1;
 	DeckString = 2;
 	CardIds = 3;
-}
-message QueueRequest {
-	GameType gameType = 1;
-	DeckType deckType = 2;
-	string deckData = 3;
-}
-
-message MatchGameRequest {
-	int32 gameId = 1;
-} 
-
-message MatchGameReply {
-	ServerReply serverReply = 1;
-	MatchGame matchGame = 2;
 }
 
 enum MsgType
@@ -66,20 +34,45 @@ enum MsgType
 	Invitation = 1;
 	InGame = 2;
 }
-message GameServerStream {
-	MsgType messageType = 1;
-	bool messageState = 2;
-	string message = 3;
-}
 
-message GameStateStreamRequest {
+message PingRequest {
 	string message = 1;
 }
-message GameStateStream {
-	string message = 1;
+message PingReply {
+	bool requestState = 1;
+	string requestMessage = 2;
 }
 
-// *** Game Objects ***
+message AuthRequest {
+	string accountName = 1;
+	string accountPsw = 2;
+}
+message AuthReply {
+	bool requestState = 1;
+	string requestMessage = 2;
+	int32 sessionId = 3;
+	string sessionToken = 4;
+}
+
+message QueueRequest {
+	GameType gameType = 1;
+	DeckType deckType = 2;
+	string deckData = 3;
+}
+message QueueReply {
+	bool requestState = 1;
+	string requestMessage = 2;
+}
+
+message MatchGameRequest {
+	int32 gameId = 1;
+} 
+
+message MatchGameReply {
+	bool requestState = 1;
+	MatchGame matchGame = 2;
+}
+
 message MatchGame {
 	int32 gameId = 1;
 	Controller currentPlayer = 2;
@@ -195,3 +188,10 @@ message Weapon {
     bool poisonous = 11;
     bool immune = 14;
 }
+
+message GameServerStream {
+	MsgType messageType = 1;
+	bool messageState = 2;
+	string message = 3;
+}
+
