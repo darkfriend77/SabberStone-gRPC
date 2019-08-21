@@ -28,13 +28,13 @@ namespace SabberStoneServer.Services
 
         private readonly Random _random;
 
-        public UserDataInfo Player1 { get; }
+        public UserClient Player1 { get; }
 
         public PlayState Play1State => _game.Player1.PlayState;
 
         private PowerAllOptions _powerAllOptionsPlayer1;
 
-        public UserDataInfo Player2 { get; }
+        public UserClient Player2 { get; }
 
         public PlayState Play2State => _game.Player2.PlayState;
 
@@ -48,11 +48,11 @@ namespace SabberStoneServer.Services
 
         private readonly string _token;
 
-        private UserDataInfo UserById(int id) => Player1.PlayerId == id ? Player1 : Player2.PlayerId == id ? Player2 : null;
+        private UserClient UserById(int id) => Player1.PlayerId == id ? Player1 : Player2.PlayerId == id ? Player2 : null;
 
         public bool IsFinished => Player1.PlayerState == PlayerState.Quit && Player2.PlayerState == PlayerState.Quit;
 
-        public MatchGameService(GameServerServiceImpl gameServerService, int index, UserDataInfo player1, UserDataInfo player2)
+        public MatchGameService(GameServerServiceImpl gameServerService, int index, UserClient player1, UserClient player2)
         {
             _gameServerService = gameServerService;
             _random = new Random();
@@ -248,7 +248,7 @@ namespace SabberStoneServer.Services
             }
         }
 
-        public void SendGameData(UserDataInfo player, MsgType messageType, bool messageState, GameDataType gameDataType, string gameDataObject = "")
+        public void SendGameData(UserClient player, MsgType messageType, bool messageState, GameDataType gameDataType, string gameDataObject = "")
         {
             player.responseQueue.Enqueue(new GameServerStream()
             {

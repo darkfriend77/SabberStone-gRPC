@@ -11,6 +11,7 @@ namespace SabberStoneContract.Model
     public enum UserState
     {
         None,
+        Connected,
         Queued,
         Invited,
         Prepared,
@@ -23,14 +24,6 @@ namespace SabberStoneContract.Model
         Invitation,
         Game,
         Quit
-    }
-
-    public class UserDataInfo : UserInfo
-    {
-        public virtual string Token { get; set; }
-        public virtual string Peer { get; set; }
-
-        public ConcurrentQueue<GameServerStream> responseQueue;
     }
 
     public class UserInfo

@@ -21,9 +21,9 @@ namespace SabberStoneClient.Core
     {
         private static readonly ILog Log = Logger.Instance.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private int _port;
+        private readonly int _port;
 
-        private string _target;
+        private readonly string _target;
 
         private Channel _channel;
 
@@ -81,6 +81,8 @@ namespace SabberStoneClient.Core
 
         private ConcurrentQueue<GameServerStream> _gameServerStream;
 
+        private readonly CancellationTokenSource _cancellationTokenSource;
+
         public GameClient(int port, ISabberStoneAI sabberStoneAI, string accountName = "", bool logGames = false)
         {
             _port = port;
@@ -99,6 +101,8 @@ namespace SabberStoneClient.Core
             _fullGameHistory = new List<string>();
             HistoryEntries = new ConcurrentQueue<IPowerHistoryEntry>();
             PowerOptionList = new List<PowerOption>();
+
+            _cancellationTokenSource = new CancellationTokenSource();
         }
 
         public void Connect()
@@ -158,14 +162,13 @@ namespace SabberStoneClient.Core
 
         public async void GameServerChannel()
         {
-            using (var call = _client.GameServerChannel(headers: new Metadata { new Metadata.Entry("token", _sessionToken) }))
+            using (var call = _client.GameServerChannel(headers: new Metadata { new Metadata.Entry("token", _sessionToken) }, cancellationToken: _cancellationTokenSource.Token))
             {
-
                 _gameServerStream = new ConcurrentQueue<GameServerStream>();
 
-                var requestStreamWriter = Task.Run(async () =>
+                var requestStreamWriterTask = new Task(async () =>
                 {
-                    while (_gameServerStream != null)
+                    while (!_cancellationTokenSource.Token.IsCancellationRequested)
                     {
                         if (_gameServerStream.TryDequeue(out GameServerStream gameServerStream))
                         {
@@ -177,19 +180,27 @@ namespace SabberStoneClient.Core
                         }
                     }
                 });
+                requestStreamWriterTask.Start();
 
-                var responseStreamReader = Task.Run(async () =>
+
+                await Task.Run(async () =>
                 {
-                    while (await call.ResponseStream.MoveNext(CancellationToken.None) && GameClientState != GameClientState.None)
+                    try
                     {
-                        ProcessChannelMessage(call.ResponseStream.Current);
-                        Thread.Sleep(5);
-                    };
+                        while (await call.ResponseStream.MoveNext(_cancellationTokenSource.Token))
+                        { 
+                            ProcessChannelMessage(call.ResponseStream.Current);
+                            Thread.Sleep(5);
+                        }
+                    }
+                    catch (RpcException exception)
+                    {
+                        if (exception.StatusCode != StatusCode.Cancelled)
+                        {
+                            Log.Error(exception.ToString());
+                        }
+                    }
                 });
-
-                await requestStreamWriter;
-
-                await responseStreamReader;
             }
         }
 
@@ -236,16 +247,15 @@ namespace SabberStoneClient.Core
             WriteGameData(MsgType.InGame, true, new GameData() { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.PowerOptions, GameDataObject = JsonConvert.SerializeObject(powerOptionChoice) });
         }
 
-        public async void Disconnect()
+        public void Disconnect()
         {
-            if (_gameServerStream != null)
-            {
-                _gameServerStream = null;
-            }
+            _client.Disconnect(new ServerRequest(), new Metadata { new Metadata.Entry("token", _sessionToken) });
+
+            _cancellationTokenSource.Cancel();
 
             GameClientState = GameClientState.None;
 
-            await _channel.ShutdownAsync();
+            _channel.ShutdownAsync();
         }
 
         private void ProcessChannelMessage(GameServerStream current)

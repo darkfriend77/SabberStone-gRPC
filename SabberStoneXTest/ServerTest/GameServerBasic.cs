@@ -31,7 +31,7 @@ namespace SabberStoneXTest.ServerTest
             var client = new GameServerService.GameServerServiceClient(channel);
             Assert.Equal(ChannelState.Idle, channel.State);
 
-            var reply = client.Ping(new PingRequest { Message = string.Empty });
+            var reply = client.Ping(new ServerRequest { Message = string.Empty });
 
             Assert.True(reply.RequestState);
             Assert.Equal("Ping", reply.RequestMessage);

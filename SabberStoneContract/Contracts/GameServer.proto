@@ -3,7 +3,9 @@
 // The greeting service definition.
 service GameServerService {
 
-	rpc Ping (PingRequest) returns (PingReply) {}
+	rpc Ping (ServerRequest) returns (ServerReply) {}
+
+	rpc Disconnect (ServerRequest) returns (ServerReply) {}
 
 	rpc Authentication (AuthRequest) returns (AuthReply) {}
 
@@ -35,10 +37,10 @@ enum MsgType
 	InGame = 2;
 }
 
-message PingRequest {
+message ServerRequest {
 	string message = 1;
 }
-message PingReply {
+message ServerReply {
 	bool requestState = 1;
 	string requestMessage = 2;
 }

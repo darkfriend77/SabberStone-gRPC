@@ -19,6 +19,10 @@ namespace SabberStoneServer.Services
     {
         private static readonly ILog Log = Logger.Instance.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
+        private static ConcurrentDictionary<string, UserClient> _registredUsers;
+
+        public ICollection<UserClient> RegistredUsers => _registredUsers.Values;
+
         public Action<MsgType, bool, GameData> ProcessGameData { get; internal set; }
 
         public Func<int, int, MatchGame> GetMatchGame { get; internal set; }
@@ -26,23 +30,42 @@ namespace SabberStoneServer.Services
         private int _index = 10000;
         public int NextSessionIndex => _index++;
 
-        private readonly ConcurrentDictionary<string, UserDataInfo> _registredUsers;
-
-        public ICollection<UserDataInfo> RegistredUsers => _registredUsers.Values;
-
         public GameServerServiceImpl()
         {
-            _registredUsers = new ConcurrentDictionary<string, UserDataInfo>();
+            _registredUsers = new ConcurrentDictionary<string, UserClient>();
         }
 
-        public override Task<PingReply> Ping(PingRequest request, ServerCallContext context)
+        public override Task<ServerReply> Ping(ServerRequest request, ServerCallContext context)
         {
             Log.Info(context.Peer);
 
-            var reply = new PingReply
+            var reply = new ServerReply
             {
                 RequestState = true,
                 RequestMessage = "Ping",
+            };
+
+            return Task.FromResult(reply);
+        }
+
+        public override Task<ServerReply> Disconnect(ServerRequest request, ServerCallContext context)
+        {
+            if (!TokenAuthentification(context.RequestHeaders, out string clientTokenValue))
+            {
+                return Task.FromResult(new ServerReply() { RequestState = false });
+            }
+
+            if (!_registredUsers.TryGetValue(clientTokenValue, out UserClient userDataInfo))
+            {
+                return Task.FromResult(new ServerReply() { RequestState = false });
+            }
+
+            // stop stream channel
+            userDataInfo.CancellationTokenSource.Cancel();
+
+            var reply = new ServerReply
+            {
+                RequestState = true
             };
 
             return Task.FromResult(reply);
@@ -74,13 +97,13 @@ namespace SabberStoneServer.Services
             }
 
             var sessionId = NextSessionIndex;
-            var userInfo = new UserDataInfo
+            var userInfo = new UserClient
             {
                 Peer = context.Peer,
                 Token = Helper.ComputeSha256Hash(sessionId + request.AccountName + context.Peer),
                 SessionId = sessionId,
                 AccountName = request.AccountName,
-                UserState = UserState.None,
+                UserState = UserState.Connected,
                 GameId = -1,
                 DeckType = DeckType.None,
                 DeckData = string.Empty,
@@ -116,7 +139,7 @@ namespace SabberStoneServer.Services
                 return Task.FromResult(new MatchGameReply() { RequestState = false });
             }
 
-            if (!_registredUsers.TryGetValue(clientTokenValue, out UserDataInfo userDataInfo))
+            if (!_registredUsers.TryGetValue(clientTokenValue, out UserClient userDataInfo))
             {
                 Log.Info($"couldn't get user data info!");
                 return Task.FromResult(new MatchGameReply() { RequestState = false });
@@ -136,64 +159,61 @@ namespace SabberStoneServer.Services
                 return;
             }
 
-            if (!_registredUsers.TryGetValue(clientTokenValue, out UserDataInfo userDataInfo))
+            if (!_registredUsers.TryGetValue(clientTokenValue, out UserClient userDataInfo))
             {
                 Log.Info($"couldn't get user data info!");
                 return;
             }
 
-            if (ClientManager.ClientDictionary.ContainsKey(clientTokenValue))
+            if (userDataInfo.ResponseStreamWriterTask != null && userDataInfo.ResponseStreamWriterTask.Status == TaskStatus.Running)
             {
-                Log.Info($"bad game server channel request, token already registred!");
+                Log.Info($"already running ResponseStreamWriterTask[{userDataInfo.ResponseStreamWriterTask.Status}]!");
                 return;
             }
 
-            if (!ClientManager.ClientDictionary.TryAdd(clientTokenValue,  new Client()))
+            userDataInfo.ResponseStreamWriterTask = new Task(async () =>
             {
-                Log.Info($"bad game server channel request, couldn't add to client manager!");
-                return;
-            };
-
-            // adding the response stream to user data
-            userDataInfo.responseQueue = new ConcurrentQueue<GameServerStream>();
-
-            var responseStreamWriter = Task.Run(async () =>
-            {
-                while (userDataInfo.responseQueue != null)
+                while (!userDataInfo.CancellationToken.IsCancellationRequested)
                 {
                     if (userDataInfo.responseQueue.TryDequeue(out GameServerStream gameServerStream))
                     {
                         await responseStream.WriteAsync(gameServerStream);
-                     }
+                    }
                     else
                     {
                         Thread.Sleep(5);
                     }
                 }
             });
+            userDataInfo.ResponseStreamWriterTask.Start();
 
-            var requestStreamReader = Task.Run(async () =>
+            await Task.Run(async () =>
             {
-                Log.Info($"gameserver channel opened for user!");
-                while (await requestStream.MoveNext(CancellationToken.None))
+                while (await requestStream.MoveNext(userDataInfo.CancellationToken))
                 {
-                    var response = ProcessRequest(clientTokenValue, requestStream.Current);
-                    if (response != null)
+                    try
                     {
-                        userDataInfo.responseQueue.Enqueue(response);
-                        Thread.Sleep(5);
+                        var response = ProcessRequest(requestStream.Current);
+                        if (response != null)
+                        {
+                            userDataInfo.responseQueue.Enqueue(response);
+                            Thread.Sleep(5);
+                        }
+                    }
+                    catch (RpcException exception)
+                    {
+                        if (exception.StatusCode != StatusCode.Cancelled)
+                        {
+                            Log.Error(exception.ToString());
+                        }
                     }
                 }
             });
 
-            await responseStreamWriter;
-
-            await requestStreamReader;
-
             Log.Info($"gameserver channel closed for user!");
         }
 
-        private GameServerStream ProcessRequest(string clientTokenValue, GameServerStream current)
+        private GameServerStream ProcessRequest(GameServerStream current)
         {
             switch (current.MessageType)
             {
@@ -221,7 +241,7 @@ namespace SabberStoneServer.Services
                 });
             }
 
-            if (!_registredUsers.TryGetValue(clientTokenValue, out UserDataInfo userDataInfo))
+            if (!_registredUsers.TryGetValue(clientTokenValue, out UserClient userDataInfo))
             {
                 Log.Info($"couldn't get user data info!");
                 return Task.FromResult(new QueueReply
@@ -231,7 +251,7 @@ namespace SabberStoneServer.Services
                 });
             }
 
-            if (!ClientManager.ClientDictionary.TryGetValue(clientTokenValue, out Client _))
+            if (userDataInfo.ResponseStreamWriterTask.Status != TaskStatus.Running)
             {
                 Log.Info($"User hasn't established a channel initialisation!");
                 return Task.FromResult(new QueueReply
@@ -270,13 +290,24 @@ namespace SabberStoneServer.Services
         }
     }
 
-    public static class ClientManager
+    public class UserClient : UserInfo
     {
-        public static ConcurrentDictionary<string, Client> ClientDictionary = new ConcurrentDictionary<string, Client>();
-    }
+        public string Token { get; set; }
+        public string Peer { get; set; }
 
-    public class Client
-    {
+        public Task ResponseStreamWriterTask { get; set; }
+
+        public ConcurrentQueue<GameServerStream> responseQueue;
+
+        public CancellationToken CancellationToken => CancellationTokenSource.Token;
+
+        public CancellationTokenSource CancellationTokenSource;
+
+        public UserClient()
+        {
+            CancellationTokenSource = new CancellationTokenSource();
+            responseQueue = new ConcurrentQueue<GameServerStream>();
+        }
 
     }
 
