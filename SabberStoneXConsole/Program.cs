@@ -15,7 +15,7 @@ namespace SabberStoneXConsole
     {
         static void Main(string[] args)
         {
-            RunServerWith(2);
+            RunServerWith(20);
             //SimpleTest();
         }
 
@@ -51,19 +51,19 @@ namespace SabberStoneXConsole
                 tasks[index] = CreateGameClientTask(port, $"TestClient{index}", "", new RandomAI());
             }
 
-
-            Console.WriteLine("Press any key to stop.");
             Console.ReadKey();
             server.Stop();
         }
 
         private static async Task<GameClient> CreateGameClientTask(int port, string accountName, string accountpsw, ISabberStoneAI sabberStoneAI, int numberOfGames = 0)
         {
-            GameClient client = new GameClient(port, sabberStoneAI, accountName, true);
+            GameClient client = new GameClient(port, sabberStoneAI, accountName, false);
 
             client.Connect();
 
             client.Register(accountName, accountpsw);
+
+            Thread.Sleep(1000);
 
             if (client.GameClientState == GameClientState.Registred)
             {
@@ -72,7 +72,8 @@ namespace SabberStoneXConsole
 
             await Task.Run(() =>
             {
-                while (client.GameClientState != GameClientState.None)
+                var oldState = client.GameClientState;
+                while (client.GameClientState != GameClientState.Registred)
                 {
                     Thread.Sleep(1000);
                 }

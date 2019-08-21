@@ -127,11 +127,13 @@ namespace SabberStoneClient.Core
             _sessionId = authReply.SessionId;
             _sessionToken = authReply.SessionToken;
 
-            GameServerChannel();
-
             GameClientState = GameClientState.Registred;
 
             Log.Info($"Register done.");
+
+            GameServerChannel();
+
+            Log.Info($"Game Server Channel created.");
         }
 
         public void MatchGame()
@@ -169,6 +171,10 @@ namespace SabberStoneClient.Core
                         {
                             await call.RequestStream.WriteAsync(gameServerStream);
                         }
+                        else
+                        {
+                            Thread.Sleep(5);
+                        }
                     }
                 });
 
@@ -177,6 +183,7 @@ namespace SabberStoneClient.Core
                     while (await call.ResponseStream.MoveNext(CancellationToken.None) && GameClientState != GameClientState.None)
                     {
                         ProcessChannelMessage(call.ResponseStream.Current);
+                        Thread.Sleep(5);
                     };
                 });
 

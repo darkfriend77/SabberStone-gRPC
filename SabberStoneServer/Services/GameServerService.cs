@@ -164,6 +164,10 @@ namespace SabberStoneServer.Services
                     if (userDataInfo.responseQueue.TryDequeue(out GameServerStream gameServerStream))
                     {
                         await responseStream.WriteAsync(gameServerStream);
+                     }
+                    else
+                    {
+                        Thread.Sleep(5);
                     }
                 }
             });
@@ -177,6 +181,7 @@ namespace SabberStoneServer.Services
                     if (response != null)
                     {
                         userDataInfo.responseQueue.Enqueue(response);
+                        Thread.Sleep(5);
                     }
                 }
             });
