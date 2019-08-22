@@ -175,7 +175,7 @@ namespace SabberStoneServer.Services
             {
                 while (!userDataInfo.CancellationToken.IsCancellationRequested)
                 {
-                    if (userDataInfo.responseQueue.TryDequeue(out GameServerStream gameServerStream))
+                    if (!userDataInfo.responseQueue.IsEmpty && userDataInfo.responseQueue.TryDequeue(out GameServerStream gameServerStream))
                     {
                         await responseStream.WriteAsync(gameServerStream);
                     }

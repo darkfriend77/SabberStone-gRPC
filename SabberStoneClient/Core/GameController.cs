@@ -36,6 +36,11 @@ namespace SabberStoneClient.Core
 
         private Action<MsgType, bool, string> _sendGameMessage;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sabberStoneAI"></param>
+        /// <param name="sendGameMessage"></param>
         public GameController(ISabberStoneAI sabberStoneAI, Action<MsgType, bool, string> sendGameMessage)
         {
             _sendGameMessage = sendGameMessage;

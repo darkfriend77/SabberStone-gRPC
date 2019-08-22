@@ -52,6 +52,11 @@ namespace SabberStoneClient.Core
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="port"></param>
+        /// <param name="sabberStoneAI"></param>
         public GameClient(int port, ISabberStoneAI sabberStoneAI)
         {
             _port = port;
@@ -119,7 +124,7 @@ namespace SabberStoneClient.Core
                 {
                     while (!_cancellationTokenSource.Token.IsCancellationRequested)
                     {
-                        if (_gameServerStreamQueue.TryDequeue(out GameServerStream gameServerStream))
+                        if (!_gameServerStreamQueue.IsEmpty && _gameServerStreamQueue.TryDequeue(out GameServerStream gameServerStream))
                         {
                             await call.RequestStream.WriteAsync(gameServerStream);
                         }
