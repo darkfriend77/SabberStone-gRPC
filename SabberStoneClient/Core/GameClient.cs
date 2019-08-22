@@ -31,78 +31,36 @@ namespace SabberStoneClient.Core
 
         private GameClientState _gameClientState;
 
+        private int _sessionId;
+
+        private string _sessionToken;
+
+        private readonly CancellationTokenSource _cancellationTokenSource;
+
+        private ConcurrentQueue<GameServerStream> _gameServerStreamQueue;
+
+        private GameController _gameController;
+
         public GameClientState GameClientState
         {
             get => _gameClientState;
             private set
             {
                 var oldValue = _gameClientState;
-
                 _gameClientState = value;
-
-                ActionGameClientStateChange(oldValue, value);
-
-                if (oldValue == GameClientState.InGame && value != GameClientState.InGame)
-                {
-                    // game left clean up
-                    AfterInGame();
-                }
-
+                CallGameClientState(oldValue, value);
             }
         }
 
-        private int _sessionId;
-
-        private string _sessionToken;
-
-        private int _gameId;
-
-        private int _playerId;
-
-        private bool _logGames;
-
-        private List<UserInfo> _userInfos;
-
-        public string AccountName { get; private set; }
-
-        public UserInfo MyUserInfo => _userInfos.FirstOrDefault(p => p.PlayerId == _playerId);
-
-        public UserInfo OpUserInfo => _userInfos.FirstOrDefault(p => p.PlayerId != _playerId);
-
-        private List<string> _fullGameHistory { get; }
-
-
-
-        private ISabberStoneAI _sabberStoneAI;
-
-        private ConcurrentQueue<GameServerStream> _gameServerStream;
-
-        private readonly CancellationTokenSource _cancellationTokenSource;
-
-        public GameController GameController { get; }
-
-        public GameClient(int port, ISabberStoneAI sabberStoneAI, string accountName = "", bool logGames = false)
+        public GameClient(int port, ISabberStoneAI sabberStoneAI)
         {
             _port = port;
-            _sabberStoneAI = sabberStoneAI ?? new RandomAI();
-
             _target = $"127.0.0.1:{_port}";
-            GameClientState = GameClientState.None;
-
-            _gameId = -1;
-            _playerId = -1;
-            _logGames = logGames;
-
-            _userInfos = new List<UserInfo>();
-
-            AccountName = accountName;
-            _fullGameHistory = new List<string>();
-
-
-            _gameServerStream = new ConcurrentQueue<GameServerStream>();
             _cancellationTokenSource = new CancellationTokenSource();
+            _gameServerStreamQueue = new ConcurrentQueue<GameServerStream>();
+            _gameController = new GameController(sabberStoneAI, SendGameMessage);
 
-            GameController = new GameController();
+            GameClientState = GameClientState.None;
         }
 
         public void Connect()
@@ -133,11 +91,7 @@ namespace SabberStoneClient.Core
 
             GameClientState = GameClientState.Registred;
 
-            Log.Info($"Register done.");
-
             GameServerChannel();
-
-            Log.Info($"Game Server Channel created.");
         }
 
         public void MatchGame()
@@ -148,16 +102,13 @@ namespace SabberStoneClient.Core
                 return;
             }
 
-            var matchGameReply = _client.MatchGame(new MatchGameRequest { GameId = _gameId }, new Metadata { new Metadata.Entry("token", _sessionToken) });
+            var matchGameReply = _client.MatchGame(new MatchGameRequest { GameId = _gameController.GameId }, new Metadata { new Metadata.Entry("token", _sessionToken) });
 
             if (!matchGameReply.RequestState)
             {
                 Log.Warn("Bad MatchGameRequest.");
                 return;
             }
-
-            // TODO do something with the game object ...
-            Log.Info($"Got match game successfully.");
         }
 
         public async void GameServerChannel()
@@ -168,7 +119,7 @@ namespace SabberStoneClient.Core
                 {
                     while (!_cancellationTokenSource.Token.IsCancellationRequested)
                     {
-                        if (_gameServerStream.TryDequeue(out GameServerStream gameServerStream))
+                        if (_gameServerStreamQueue.TryDequeue(out GameServerStream gameServerStream))
                         {
                             await call.RequestStream.WriteAsync(gameServerStream);
                         }
@@ -180,13 +131,12 @@ namespace SabberStoneClient.Core
                 });
                 requestStreamWriterTask.Start();
 
-
                 await Task.Run(async () =>
                 {
                     try
                     {
                         while (await call.ResponseStream.MoveNext(_cancellationTokenSource.Token))
-                        { 
+                        {
                             ProcessChannelMessage(call.ResponseStream.Current);
                             Thread.Sleep(5);
                         }
@@ -202,39 +152,14 @@ namespace SabberStoneClient.Core
             }
         }
 
-        public void WriteGameServerStream(MsgType messageType, bool messageState, GameData gameData)
+        public void SendGameMessage(MsgType msgType, bool msgState, string msgData)
         {
-            if (_gameServerStream == null)
+            _gameServerStreamQueue.Enqueue(new GameServerStream
             {
-                Log.Warn($"There is no write stream currently.");
-                return;
-            }
-
-            _gameServerStream.Enqueue(new GameServerStream
-            {
-                MessageType = messageType,
-                MessageState = messageState,
-                Message = JsonConvert.SerializeObject(gameData)
+                MessageType = msgType,
+                MessageState = msgState,
+                Message = msgData
             });
-        }
-
-        public void SendInvitationReply(bool accept)
-        {
-            WriteGameServerStream(MsgType.Invitation, accept, new GameData { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.None });
-        }
-
-        public void SendPowerChoicesChoice(PowerChoices powerChoices)
-        {
-            // clear before sent ...
-            GameController.PowerChoices = null;
-            WriteGameServerStream(MsgType.InGame, true, new GameData() { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.PowerChoices, GameDataObject = JsonConvert.SerializeObject(powerChoices) });
-        }
-
-        public void SendPowerOptionChoice(PowerOptionChoice powerOptionChoice)
-        {
-            // clear before sent ...
-            GameController.PowerOptionList.Clear();
-            WriteGameServerStream(MsgType.InGame, true, new GameData() { GameId = _gameId, PlayerId = _playerId, GameDataType = GameDataType.PowerOptions, GameDataObject = JsonConvert.SerializeObject(powerOptionChoice) });
         }
 
         public void Disconnect()
@@ -269,61 +194,41 @@ namespace SabberStoneClient.Core
 
             switch (current.MessageType)
             {
-                case MsgType.Initialisation:
-                    //GameClientState = GameClientState.Registred;
-                    //registerWaiter.SetResult(new object());
-                    break;
-
                 case MsgType.Invitation:
-                    _gameId = gameData.GameId;
-                    _playerId = gameData.PlayerId;
+
+                    // preparing for a new game
+                    _gameController.Reset();
+
+                    _gameController.GameId = gameData.GameId;
+                    _gameController.PlayerId = gameData.PlayerId;
                     GameClientState = GameClientState.Invited;
 
                     // action call here
-                    ActionCallInvitation();
+                    CallInvitation();
                     break;
 
                 case MsgType.InGame:
                     switch (gameData.GameDataType)
                     {
                         case GameDataType.Initialisation:
-                            _userInfos = JsonConvert.DeserializeObject<List<UserInfo>>(gameData.GameDataObject);
+                            _gameController.SetUserInfos(JsonConvert.DeserializeObject<List<UserInfo>>(gameData.GameDataObject));
                             GameClientState = GameClientState.InGame;
-                            Log.Info($"Initialized game against account {OpUserInfo.AccountName}!");
-
-                            // action call here
-                            ActionCallInitialisation();
                             break;
 
                         case GameDataType.PowerHistory:
-                            List<IPowerHistoryEntry> powerHistoryEntries = JsonConvert.DeserializeObject<List<IPowerHistoryEntry>>(gameData.GameDataObject, new PowerHistoryConverter());
-                            _fullGameHistory.Add(gameData.GameDataObject);
-                            powerHistoryEntries.ForEach(p => GameController.HistoryEntries.Enqueue(p));
+                            _gameController.SetPowerHistory(JsonConvert.DeserializeObject<List<IPowerHistoryEntry>>(gameData.GameDataObject, new PowerHistoryConverter()));
                             break;
 
                         case GameDataType.PowerChoices:
-                            GameController.PowerChoices = JsonConvert.DeserializeObject<PowerChoices>(gameData.GameDataObject);
-
-                            // action call here
-                            ActionCallPowerChoices();
+                            _gameController.SetPowerChoices(JsonConvert.DeserializeObject<PowerChoices>(gameData.GameDataObject));
+                            
                             break;
 
                         case GameDataType.PowerOptions:
-                            var powerOptions = JsonConvert.DeserializeObject<PowerOptions>(gameData.GameDataObject);
-                            GameController.PowerOptionList = powerOptions.PowerOptionList;
-                            if (GameController.PowerOptionList != null &&
-                               GameController.PowerOptionList.Count > 0)
-                            {
-
-                                // action call here
-                                ActionCallPowerOptions();
-                                break;
-                            }
+                            _gameController.SetPowerOptions(JsonConvert.DeserializeObject<PowerOptions>(gameData.GameDataObject));
                             break;
 
                         case GameDataType.Result:
-
-                            //Log.Info($" ... ");
                             GameClientState = GameClientState.Registred;
                             break;
                     }
@@ -359,28 +264,7 @@ namespace SabberStoneClient.Core
             GameClientState = GameClientState.Queued;
         }
 
-        private void AfterInGame()
-        {
-            if (_logGames && _fullGameHistory.Any())
-            {
-                var gameLogFilename = $"GAME-{MyUserInfo.GameId}-{MyUserInfo.PlayerId}-{DateTime.Now.Ticks}.log";
-                var gameLogFilePath = Path.Combine(Directory.GetCurrentDirectory(), gameLogFilename);
-                Log.Info($"Writing game log to {gameLogFilePath}.");
-                File.WriteAllText(gameLogFilePath, JsonConvert.SerializeObject(_fullGameHistory));
-            }
-
-            // clean up
-            _userInfos.Clear();
-            _fullGameHistory.Clear();
-            while (!GameController.HistoryEntries.IsEmpty)
-            {
-                GameController.HistoryEntries.TryDequeue(out _);
-            }
-            GameController.PowerChoices = null;
-            GameController.PowerOptionList.Clear();
-        }
-
-        public async virtual void ActionGameClientStateChange(GameClientState oldState, GameClientState newState)
+        public async virtual void CallGameClientState(GameClientState oldState, GameClientState newState)
         {
             await Task.Run(() =>
             {
@@ -388,36 +272,13 @@ namespace SabberStoneClient.Core
             });
         }
 
-        public async virtual void ActionCallInvitation()
+        public async virtual void CallInvitation()
         {
             await Task.Run(() =>
             {
-                SendInvitationReply(true);
+                _gameController.SendInvitationReply(true);
             });
         }
 
-        public async virtual void ActionCallInitialisation()
-        {
-            await Task.Run(() =>
-            {
-                //MatchGame();
-            });
-        }
-
-        public async virtual void ActionCallPowerChoices()
-        {
-            await Task.Run(() =>
-            {
-                SendPowerChoicesChoice(_sabberStoneAI.PowerChoices(GameController.PowerChoices));
-            });
-        }
-
-        public async virtual void ActionCallPowerOptions()
-        {
-            await Task.Run(() =>
-            {
-                SendPowerOptionChoice(_sabberStoneAI.PowerOptions(GameController.PowerOptionList));
-            });
-        }
     }
 }

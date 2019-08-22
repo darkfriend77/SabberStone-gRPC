@@ -57,7 +57,7 @@ namespace SabberStoneXConsole
 
         private static async Task<GameClient> CreateGameClientTask(int port, string accountName, string accountpsw, ISabberStoneAI sabberStoneAI, int numberOfGames = 0)
         {
-            GameClient client = new GameClient(port, sabberStoneAI, accountName, false);
+            GameClient client = new GameClient(port, sabberStoneAI);
 
             client.Connect();
 
@@ -79,7 +79,7 @@ namespace SabberStoneXConsole
                 }
                 client.Disconnect();
 
-                Console.WriteLine($"client[{client.AccountName}]: disconnected.");
+                Console.WriteLine($"client[{accountName}]: disconnected.");
             });
 
             return client;
