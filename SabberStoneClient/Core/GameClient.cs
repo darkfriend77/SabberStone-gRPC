@@ -57,13 +57,17 @@ namespace SabberStoneClient.Core
         /// </summary>
         /// <param name="port"></param>
         /// <param name="sabberStoneAI"></param>
-        public GameClient(int port, ISabberStoneAI sabberStoneAI)
+        public GameClient(int port, GameController gameController)
         {
             _port = port;
             _target = $"127.0.0.1:{_port}";
+
             _cancellationTokenSource = new CancellationTokenSource();
+
             _gameServerStreamQueue = new ConcurrentQueue<GameServerStream>();
-            _gameController = new GameController(sabberStoneAI, SendGameMessage);
+
+            _gameController = gameController;
+            _gameController.SetSendGameMessage(SendGameMessage);
 
             GameClientState = GameClientState.None;
         }
@@ -94,9 +98,9 @@ namespace SabberStoneClient.Core
             _sessionId = authReply.SessionId;
             _sessionToken = authReply.SessionToken;
 
-            GameClientState = GameClientState.Registred;
-
             GameServerChannel();
+
+            GameClientState = GameClientState.Registred;
         }
 
         public void MatchGame()
@@ -124,13 +128,13 @@ namespace SabberStoneClient.Core
                 {
                     while (!_cancellationTokenSource.Token.IsCancellationRequested)
                     {
-                        if (!_gameServerStreamQueue.IsEmpty && _gameServerStreamQueue.TryDequeue(out GameServerStream gameServerStream))
+                        if (_gameServerStreamQueue.TryDequeue(out GameServerStream gameServerStream))
                         {
                             await call.RequestStream.WriteAsync(gameServerStream);
                         }
                         else
                         {
-                            Thread.Sleep(5);
+                            Thread.Sleep(1);
                         }
                     }
                 });
@@ -143,7 +147,6 @@ namespace SabberStoneClient.Core
                         while (await call.ResponseStream.MoveNext(_cancellationTokenSource.Token))
                         {
                             ProcessChannelMessage(call.ResponseStream.Current);
-                            Thread.Sleep(5);
                         }
                     }
                     catch (RpcException exception)
@@ -199,6 +202,9 @@ namespace SabberStoneClient.Core
 
             switch (current.MessageType)
             {
+//                case MsgType.Initialisation:
+//                    break;
+
                 case MsgType.Invitation:
 
                     // preparing for a new game

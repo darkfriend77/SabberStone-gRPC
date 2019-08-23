@@ -34,17 +34,15 @@ namespace SabberStoneClient.Core
 
         public ISabberStoneAI SabberStoneAI { get; set; }
 
-        private Action<MsgType, bool, string> _sendGameMessage;
+        private Action<MsgType, bool, string> _sendGameMessage { get; set; }
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="sabberStoneAI"></param>
         /// <param name="sendGameMessage"></param>
-        public GameController(ISabberStoneAI sabberStoneAI, Action<MsgType, bool, string> sendGameMessage)
+        public GameController(ISabberStoneAI sabberStoneAI)
         {
-            _sendGameMessage = sendGameMessage;
-
             SabberStoneAI = sabberStoneAI ?? new RandomAI();
 
             _userInfos = new List<UserInfo>();
@@ -65,6 +63,11 @@ namespace SabberStoneClient.Core
             }
             _powerOptionList.Clear();
             _powerChoices = null;
+        }
+
+        public void SetSendGameMessage(Action<MsgType, bool, string> sendGameMessage)
+        {
+            _sendGameMessage = sendGameMessage;
         }
 
         internal void SetUserInfos(List<UserInfo> userInfos)

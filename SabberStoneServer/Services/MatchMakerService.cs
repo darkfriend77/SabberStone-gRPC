@@ -38,7 +38,7 @@ namespace SabberStoneServer.Services
             _matchGames = new ConcurrentDictionary<int, MatchGameService>();
         }
 
-        private void MatchMakerEvent()
+        private void RemoveFinsihedMatches()
         {
             var finishedMatches = _matchGames.Values.Where(matchGamesValue => matchGamesValue.IsFinished).ToList();
             finishedMatches.ForEach(p =>
@@ -48,6 +48,11 @@ namespace SabberStoneServer.Services
                     Log.Info($"[GameId:{finishedMatch.GameId}] finished, [{finishedMatch.Player1.AccountName}:{finishedMatch.Play1State}] vs [{finishedMatch.Player2.AccountName}:{finishedMatch.Play2State}].");
                 }
             });
+        }
+
+        private void MatchMakerEvent()
+        {
+            RemoveFinsihedMatches();
 
             var queuedUsers = _gameServerService.RegistredUsers.Where(user => user.UserState == UserState.Queued).ToList();
             if (queuedUsers.Count > 0)
@@ -88,6 +93,8 @@ namespace SabberStoneServer.Services
         public void Stop()
         {
             _timer.Change(Timeout.Infinite, Timeout.Infinite);
+
+            RemoveFinsihedMatches();
         }
 
         public void ProcessGameData(MsgType messageType, bool messageState, GameData gameData)

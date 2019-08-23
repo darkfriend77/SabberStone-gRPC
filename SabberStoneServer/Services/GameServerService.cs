@@ -175,13 +175,13 @@ namespace SabberStoneServer.Services
             {
                 while (!userDataInfo.CancellationToken.IsCancellationRequested)
                 {
-                    if (!userDataInfo.responseQueue.IsEmpty && userDataInfo.responseQueue.TryDequeue(out GameServerStream gameServerStream))
+                    if (userDataInfo.responseQueue.TryDequeue(out GameServerStream gameServerStream))
                     {
                         await responseStream.WriteAsync(gameServerStream);
                     }
                     else
                     {
-                        Thread.Sleep(5);
+                        Thread.Sleep(1);
                     }
                 }
             });
@@ -197,7 +197,6 @@ namespace SabberStoneServer.Services
                         if (response != null)
                         {
                             userDataInfo.responseQueue.Enqueue(response);
-                            Thread.Sleep(5);
                         }
                     }
                     catch (RpcException exception)
@@ -217,11 +216,9 @@ namespace SabberStoneServer.Services
         {
             switch (current.MessageType)
             {
-                case MsgType.Initialisation:
-                    return new GameServerStream() { MessageType = MsgType.Initialisation, MessageState = true, Message = string.Empty };
+//                case MsgType.Initialisation:
+//                    return new GameServerStream() { MessageType = MsgType.Initialisation, MessageState = true, Message = string.Empty };
                 case MsgType.Invitation:
-                    Log.Debug($"Invitation reply received.");
-                    goto case MsgType.InGame;
                 case MsgType.InGame:
                     ProcessGameData(current.MessageType, current.MessageState, JsonConvert.DeserializeObject<GameData>(current.Message));
                     return null;

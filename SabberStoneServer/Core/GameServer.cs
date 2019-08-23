@@ -46,6 +46,7 @@ namespace SabberStoneServer.Core
 
         public void Stop()
         {
+            _matchMakerService.Stop();
             _server.ShutdownAsync().Wait();
         }
 
