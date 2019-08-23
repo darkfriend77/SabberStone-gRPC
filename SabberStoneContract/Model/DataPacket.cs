@@ -44,7 +44,7 @@ namespace SabberStoneContract.Model
                 AccountName = AccountName,
                 UserState = UserState.None,
                 GameId = GameId,
-                DeckType = DeckType.None,
+                DeckType = DeckType.Random,
                 DeckData = null,
                 PlayerState = PlayerState.None,
                 PlayerId = PlayerId

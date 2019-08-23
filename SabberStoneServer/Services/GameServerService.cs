@@ -105,7 +105,7 @@ namespace SabberStoneServer.Services
                 AccountName = request.AccountName,
                 UserState = UserState.Connected,
                 GameId = -1,
-                DeckType = DeckType.None,
+                DeckType = DeckType.Random,
                 DeckData = string.Empty,
                 PlayerState = PlayerState.None,
                 PlayerId = -1
@@ -216,8 +216,8 @@ namespace SabberStoneServer.Services
         {
             switch (current.MessageType)
             {
-//                case MsgType.Initialisation:
-//                    return new GameServerStream() { MessageType = MsgType.Initialisation, MessageState = true, Message = string.Empty };
+                case MsgType.Initialisation:
+                    return new GameServerStream() { MessageType = MsgType.Initialisation, MessageState = true, Message = string.Empty };
                 case MsgType.Invitation:
                 case MsgType.InGame:
                     ProcessGameData(current.MessageType, current.MessageState, JsonConvert.DeserializeObject<GameData>(current.Message));
