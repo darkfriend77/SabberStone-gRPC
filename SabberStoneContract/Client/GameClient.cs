@@ -1,5 +1,5 @@
 ﻿using Grpc.Core;
-using log4net;
+//using log4net;
 using Newtonsoft.Json;
 using SabberStoneContract.Client;
 using SabberStoneContract.Helper;
@@ -18,7 +18,7 @@ namespace SabberStoneContract.Core
 {
     public class GameClient
     {
-        private static readonly ILog Log = Logger.Instance.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        //private static readonly ILog Log = Logger.Instance.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private readonly int _port;
 
@@ -82,7 +82,7 @@ namespace SabberStoneContract.Core
         {
             if (GameClientState != GameClientState.Connected)
             {
-                Log.Warn("Client isn't connected.");
+                //Log.Warn("Client isn't connected.");
                 return;
             }
 
@@ -90,7 +90,7 @@ namespace SabberStoneContract.Core
 
             if (!authReply.RequestState)
             {
-                Log.Warn("Bad RegisterRequest.");
+                //Log.Warn("Bad RegisterRequest.");
                 return;
             }
 
@@ -106,7 +106,7 @@ namespace SabberStoneContract.Core
         {
             if (GameClientState != GameClientState.InGame)
             {
-                Log.Warn("Client isn't in a game.");
+                //Log.Warn("Client isn't in a game.");
                 return;
             }
 
@@ -114,7 +114,7 @@ namespace SabberStoneContract.Core
 
             if (!matchGameReply.RequestState)
             {
-                Log.Warn("Bad MatchGameRequest.");
+                //Log.Warn("Bad MatchGameRequest.");
                 return;
             }
         }
@@ -152,7 +152,8 @@ namespace SabberStoneContract.Core
                     {
                         if (exception.StatusCode != StatusCode.Cancelled)
                         {
-                            Log.Error(exception.ToString());
+                            //Log.Error(exception.ToString());
+                            throw exception;
                         }
                     }
                 });
@@ -171,20 +172,20 @@ namespace SabberStoneContract.Core
 
         public void Disconnect()
         {
-            _client.Disconnect(new ServerRequest(), new Metadata { new Metadata.Entry("token", _sessionToken) });
+            _client.Disconnect(new ServerRequest(), new Metadata { new Metadata.Entry("token", _sessionToken ?? string.Empty) });
 
             _cancellationTokenSource.Cancel();
 
-            GameClientState = GameClientState.None;
-
             _channel.ShutdownAsync();
+
+            GameClientState = GameClientState.None;
         }
 
         private void ProcessChannelMessage(GameServerStream current)
         {
             if (!current.MessageState)
             {
-                Log.Warn($"Failed messageType {current.MessageType}, '{current.Message}'!");
+                //Log.Warn($"Failed messageType {current.MessageType}, '{current.Message}'!");
                 return;
             }
 
@@ -250,7 +251,7 @@ namespace SabberStoneContract.Core
         {
             if (GameClientState != GameClientState.Registred)
             {
-                Log.Warn("Client isn't registred.");
+                //Log.Warn("Client isn't registred.");
                 return;
             }
 
@@ -267,7 +268,7 @@ namespace SabberStoneContract.Core
 
             if (!queueReply.RequestState)
             {
-                Log.Warn("Bad QueueRequest.");
+                //Log.Warn("Bad QueueRequest.");
                 return;
             }
 
@@ -278,7 +279,7 @@ namespace SabberStoneContract.Core
         {
             await Task.Run(() =>
             {
-                Log.Info($"GameClientStateChange: {oldState} -> {newState}");
+                //Log.Info($"GameClientStateChange: {oldState} -> {newState}");
             });
         }
 
