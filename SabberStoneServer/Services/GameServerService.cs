@@ -227,11 +227,11 @@ namespace SabberStoneServer.Services
             }
         }
 
-        public override Task<QueueReply> GameQueue(QueueRequest request, ServerCallContext context)
+        public override Task<ServerReply> GameQueue(QueueRequest request, ServerCallContext context)
         {
             if (!TokenAuthentification(context.RequestHeaders, out string clientTokenValue))
             {
-                return Task.FromResult(new QueueReply
+                return Task.FromResult(new ServerReply
                 {
                     RequestState = false,
                     RequestMessage = string.Empty
@@ -241,7 +241,7 @@ namespace SabberStoneServer.Services
             if (!_registredUsers.TryGetValue(clientTokenValue, out UserClient userDataInfo))
             {
                 Log.Info($"couldn't get user data info!");
-                return Task.FromResult(new QueueReply
+                return Task.FromResult(new ServerReply
                 {
                     RequestState = false,
                     RequestMessage = string.Empty
@@ -251,7 +251,7 @@ namespace SabberStoneServer.Services
             if (userDataInfo.ResponseStreamWriterTask.Status != TaskStatus.Running)
             {
                 Log.Info($"User hasn't established a channel initialisation!");
-                return Task.FromResult(new QueueReply
+                return Task.FromResult(new ServerReply
                 {
                     RequestState = false,
                     RequestMessage = string.Empty
@@ -263,7 +263,7 @@ namespace SabberStoneServer.Services
             userDataInfo.DeckType = request.DeckType;
             userDataInfo.DeckData = request.DeckData;
 
-            return Task.FromResult(new QueueReply
+            return Task.FromResult(new ServerReply
             {
                 RequestState = true,
                 RequestMessage = string.Empty

@@ -9,7 +9,7 @@ service GameServerService {
 
 	rpc Authentication (AuthRequest) returns (AuthReply) {}
 
-	rpc GameQueue (QueueRequest) returns (QueueReply) {}
+	rpc GameQueue (QueueRequest) returns (ServerReply) {}
 
 	rpc MatchGame(MatchGameRequest) returns (MatchGameReply) {}
 
@@ -59,10 +59,6 @@ message QueueRequest {
 	GameType gameType = 1;
 	DeckType deckType = 2;
 	string deckData = 3;
-}
-message QueueReply {
-	bool requestState = 1;
-	string requestMessage = 2;
 }
 
 message MatchGameRequest {
