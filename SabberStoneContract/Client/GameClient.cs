@@ -172,11 +172,21 @@ namespace SabberStoneContract.Core
 
         public void Disconnect()
         {
-            _client.Disconnect(new ServerRequest(), new Metadata { new Metadata.Entry("token", _sessionToken ?? string.Empty) });
-
+            try
+            {
+                var serverReply = _client.Disconnect(new ServerRequest(), new Metadata { new Metadata.Entry("token", _sessionToken ?? string.Empty) }, DateTime.UtcNow.AddSeconds(5));
+            }
+            catch (RpcException exception)
+            {
+                if (exception.StatusCode != StatusCode.Unavailable)
+                {
+                    //Log.Error(exception.ToString());
+                    throw exception;
+                }
+            }
             _cancellationTokenSource.Cancel();
 
-            _channel.ShutdownAsync();
+            _channel.ShutdownAsync().Wait();
 
             GameClientState = GameClientState.None;
         }
@@ -202,8 +212,8 @@ namespace SabberStoneContract.Core
 
             switch (current.MessageType)
             {
-//                case MsgType.Initialisation:
-//                    break;
+                //                case MsgType.Initialisation:
+                //                    break;
 
                 case MsgType.Invitation:
 
@@ -232,7 +242,7 @@ namespace SabberStoneContract.Core
 
                         case GameDataType.PowerChoices:
                             _gameController.SetPowerChoices(JsonConvert.DeserializeObject<PowerChoices>(gameData.GameDataObject));
-                            
+
                             break;
 
                         case GameDataType.PowerOptions:

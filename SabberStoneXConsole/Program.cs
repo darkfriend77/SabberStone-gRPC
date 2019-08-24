@@ -17,6 +17,19 @@ namespace SabberStoneXConsole
     {
         static void Main(string[] args)
         {
+
+            GameClient client = new GameClient("127.0.0.1", 50051, new GameController(new RandomAI()));
+
+            client.Connect();
+            client.Disconnect();
+            //FullTest();
+            //SimpleTest();
+
+            Console.ReadKey();
+        }
+
+        public static void FullTest()
+        {
             int playerCount = 6;
             int gameCount = 10;
 
@@ -40,7 +53,6 @@ namespace SabberStoneXConsole
             Console.WriteLine($"### RunTime {playerCount} players {gameCount} games: " + elapsedTime);
 
             Console.ReadKey();
-
         }
 
         public static void SimpleTest()
