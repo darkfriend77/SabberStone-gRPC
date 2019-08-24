@@ -1,21 +1,20 @@
 ﻿using Grpc.Core;
 using log4net;
 using Newtonsoft.Json;
-using SabberStoneClient.AI;
+using SabberStoneContract.Client;
+using SabberStoneContract.Helper;
 using SabberStoneContract.Model;
 using SabberStoneCore.Kettle;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
 using static GameServerService;
 
-namespace SabberStoneClient.Core
+namespace SabberStoneContract.Core
 {
     public class GameClient
     {
@@ -57,10 +56,10 @@ namespace SabberStoneClient.Core
         /// </summary>
         /// <param name="port"></param>
         /// <param name="sabberStoneAI"></param>
-        public GameClient(int port, GameController gameController)
+        public GameClient(string targetIp, int port, GameController gameController)
         {
             _port = port;
-            _target = $"127.0.0.1:{_port}";
+            _target = $"{targetIp}:{_port}";
 
             _cancellationTokenSource = new CancellationTokenSource();
 

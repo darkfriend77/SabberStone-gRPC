@@ -4,7 +4,7 @@ using Newtonsoft.Json.Linq;
 using SabberStoneCore.Enums;
 using SabberStoneCore.Kettle;
 
-namespace SabberStoneClient.Core
+namespace SabberStoneContract.Core
 {
     public class PowerHistoryConverter : JsonConverter
     {

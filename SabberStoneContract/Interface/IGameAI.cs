@@ -2,7 +2,7 @@
 using SabberStoneCore.Kettle;
 using System.Collections.Generic;
 
-namespace SabberStoneClient.Interface
+namespace SabberStoneContract.Interface
 {
     public interface IGameAI
     {

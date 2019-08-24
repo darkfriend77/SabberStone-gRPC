@@ -6,12 +6,12 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 
-namespace SabberStoneClient.Core
+namespace SabberStoneContract.Helper
 {
     public sealed class Logger
     {
         private static readonly string LogConfigFile = @"log4net.config";
-        private static readonly Lazy<Logger> lazy = new Lazy<Logger> (() => new Logger());
+        private static readonly Lazy<Logger> lazy = new Lazy<Logger>(() => new Logger());
 
         public static Logger Instance { get { return lazy.Value; } }
 

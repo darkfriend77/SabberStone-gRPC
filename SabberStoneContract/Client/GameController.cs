@@ -1,6 +1,5 @@
-﻿using log4net;
-using Newtonsoft.Json;
-using SabberStoneClient.AI;
+﻿using Newtonsoft.Json;
+using SabberStoneContract.Interface;
 using SabberStoneContract.Model;
 using SabberStoneCore.Kettle;
 using System;
@@ -10,12 +9,10 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace SabberStoneClient.Core
+namespace SabberStoneContract.Client
 {
     public class GameController
     {
-        private static readonly ILog Log = Logger.Instance.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-
         public int GameId { get; set; }
 
         public int PlayerId { get; set; }
@@ -32,7 +29,7 @@ namespace SabberStoneClient.Core
 
         private List<PowerOption> _powerOptionList;
 
-        public ISabberStoneAI SabberStoneAI { get; set; }
+        public IGameAI SabberStoneAI { get; set; }
 
         private Action<MsgType, bool, string> _sendGameMessage { get; set; }
 
@@ -41,7 +38,7 @@ namespace SabberStoneClient.Core
         /// </summary>
         /// <param name="sabberStoneAI"></param>
         /// <param name="sendGameMessage"></param>
-        public GameController(ISabberStoneAI sabberStoneAI)
+        public GameController(IGameAI sabberStoneAI)
         {
             SabberStoneAI = sabberStoneAI ?? new RandomAI();
 
@@ -70,10 +67,9 @@ namespace SabberStoneClient.Core
             _sendGameMessage = sendGameMessage;
         }
 
-        internal void SetUserInfos(List<UserInfo> userInfos)
+        public void SetUserInfos(List<UserInfo> userInfos)
         {
             _userInfos = userInfos;
-            Log.Info($"Initialized game against account {OpUserInfo.AccountName}!");
             CallInitialisation();
         }
 
@@ -84,7 +80,7 @@ namespace SabberStoneClient.Core
             });
         }
 
-        internal void SetPowerHistory(List<IPowerHistoryEntry> powerHistoryEntries)
+        public void SetPowerHistory(List<IPowerHistoryEntry> powerHistoryEntries)
         {
             powerHistoryEntries.ForEach(p => _historyEntries.Enqueue(p));
             CallPowerHistory();
@@ -97,7 +93,7 @@ namespace SabberStoneClient.Core
             });
         }
 
-        internal void SetPowerChoices(PowerChoices powerChoices)
+        public void SetPowerChoices(PowerChoices powerChoices)
         {
             _powerChoices = powerChoices;
             CallPowerChoices();
@@ -111,7 +107,7 @@ namespace SabberStoneClient.Core
             });
         }
 
-        internal void SetPowerOptions(PowerOptions powerOptions)
+        public void SetPowerOptions(PowerOptions powerOptions)
         {
             _powerOptionList = powerOptions.PowerOptionList;
             if (_powerOptionList != null &&

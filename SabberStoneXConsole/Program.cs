@@ -1,10 +1,11 @@
-﻿using Grpc.Core;
+﻿
 using SabberStoneClient;
-using SabberStoneClient.AI;
-using SabberStoneClient.Core;
+using SabberStoneContract;
+using SabberStoneContract.Client;
+using SabberStoneContract.Core;
+using SabberStoneContract.Interface;
 using SabberStoneServer.Core;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -45,7 +46,7 @@ namespace SabberStoneXConsole
         public static void SimpleTest()
         {
             int port = 50051;
-            GameClient client = new GameClient(port, new GameController(new RandomAI()));
+            GameClient client = new GameClient("127.0.0.1", port, new GameController(new RandomAI()));
             Console.WriteLine(client.GameClientState);
             client.Connect();
             Console.WriteLine(client.GameClientState);
@@ -65,16 +66,16 @@ namespace SabberStoneXConsole
             var matchMaker = server.GetMatchMakerService();
             matchMaker.Start(1);
 
-            Task<GameClient>[] tasks = new Task<GameClient>[numberOfClients];
+            GameClient[] tasks = new GameClient[numberOfClients];
 
             for (int i = 0; i < numberOfClients; i++)
             {
                 int index = i;
 
-                tasks[index] = CreateGameClientTask(port, $"TestClient{index}", "", new RandomAI());
+                tasks[index] = CreateGameClientTask("127.0.0.1", port, $"TestClient{index}", "", new RandomAI());
             }
 
-            while (tasks.Any(p => !p.IsCompleted))
+            while (tasks.Any(p => p.GameClientState != GameClientState.None))
             {
                 Thread.Sleep(100);
             }
@@ -82,34 +83,61 @@ namespace SabberStoneXConsole
             server.Stop();
         }
 
-        private static async Task<GameClient> CreateGameClientTask(int port, string accountName, string accountpsw, ISabberStoneAI sabberStoneAI, int numberOfGames = 0)
+        private static GameClient CreateGameClientTask(string targetIp, int port, string accountName, string accountpsw, IGameAI gameAI, int numberOfGames = 0)
         {
-            GameClient client = new GameClient(port, new GameController(sabberStoneAI));
+
+            GameClient client = new TestClient(accountName, targetIp, port, new TestGameController(gameAI));
 
             client.Connect();
-
-            client.Register(accountName, accountpsw);
-
-            Thread.Sleep(200);
-
-            client.Queue();
-
-            var taskWaiter = Task.Run(() =>
-            {
-                var oldState = client.GameClientState;
-                while (client.GameClientState != GameClientState.Registred)
-                {
-                    Thread.Sleep(200);
-                }
-                client.Disconnect();
-
-                Console.WriteLine($"client[{accountName}]: disconnected.");
-            });
-
-            await taskWaiter;
 
             return client;
         }
 
+    }
+
+    public class TestClient : GameClient
+    {
+        private string _accountName;
+        public TestClient(string accountName, string targetIp, int port, GameController gameController) : base(targetIp, port, gameController)
+        {
+            _accountName = accountName;
+        }
+
+        public override void CallGameClientState(GameClientState oldState, GameClientState newState)
+        {
+            switch (newState)
+            {
+                case GameClientState.None:
+                    break;
+
+                case GameClientState.Connected:
+                    Register(_accountName, "");
+                    break;
+
+                case GameClientState.Registred:
+                    if (oldState != GameClientState.InGame)
+                    {
+                        Thread.Sleep(200);
+                        Queue();
+                    }
+                    else
+                    {
+                        Disconnect();
+                    }
+                    break;
+
+                case GameClientState.Queued:
+                    break;
+                case GameClientState.Invited:
+                    break;
+                case GameClientState.InGame:
+                    break;
+            }
+        }
+
+        private void Register()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

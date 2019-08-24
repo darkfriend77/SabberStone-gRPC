@@ -1,4 +1,4 @@
-﻿namespace SabberStoneClient.Core
+﻿namespace SabberStoneContract.Core
 {
     public enum GameClientState
     {
