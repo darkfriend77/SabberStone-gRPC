@@ -73,6 +73,7 @@ namespace SabberStoneContract.Model
 
     public class PowerChoices
     {
+        public virtual int Index { get; set; }
         public virtual ChoiceType ChoiceType { get; set; }
         public virtual List<int> Entities { get; set; }
     }

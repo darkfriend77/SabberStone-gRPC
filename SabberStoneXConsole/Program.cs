@@ -18,14 +18,17 @@ namespace SabberStoneXConsole
         static void Main(string[] args)
         {
 
+            RunServerWith(2);
+
+            Console.ReadKey();
+        }
+
+        public static void DisconnectTest()
+        {
             GameClient client = new GameClient("127.0.0.1", 50051, new GameController(new RandomAI()));
 
             client.Connect();
             client.Disconnect();
-            //FullTest();
-            //SimpleTest();
-
-            Console.ReadKey();
         }
 
         public static void FullTest()

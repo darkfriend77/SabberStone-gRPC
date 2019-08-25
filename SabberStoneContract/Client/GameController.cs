@@ -13,39 +13,41 @@ namespace SabberStoneContract.Client
 {
     public class GameController
     {
+        private Action<MsgType, bool, string> _sendGameMessage { get; set; }
+
+        private List<UserInfo> _userInfos;
+
         public int GameId { get; set; }
 
         public int PlayerId { get; set; }
-
-        private List<UserInfo> _userInfos;
 
         public UserInfo MyUserInfo => _userInfos.FirstOrDefault(p => p.PlayerId == PlayerId);
 
         public UserInfo OpUserInfo => _userInfos.FirstOrDefault(p => p.PlayerId != PlayerId);
 
-        private ConcurrentQueue<IPowerHistoryEntry> _historyEntries;
+        public ConcurrentQueue<IPowerHistoryEntry> HistoryEntries { get; }
 
-        private PowerChoices _powerChoices;
+        public PowerChoices PowerChoices { get; set; }
 
-        private List<PowerOption> _powerOptionList;
+        public PowerOptions PowerOptions { get; set; }
 
-        public IGameAI SabberStoneAI { get; set; }
+        //public List<PowerOption> PowerOptionList { get; set; }
 
-        private Action<MsgType, bool, string> _sendGameMessage { get; set; }
+        public IGameAI GameAI { get; }
 
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="sabberStoneAI"></param>
+        /// <param name="gameAI"></param>
         /// <param name="sendGameMessage"></param>
-        public GameController(IGameAI sabberStoneAI)
+        public GameController(IGameAI gameAI)
         {
-            SabberStoneAI = sabberStoneAI ?? new RandomAI();
-
             _userInfos = new List<UserInfo>();
-            _historyEntries = new ConcurrentQueue<IPowerHistoryEntry>();
-            _powerOptionList = new List<PowerOption>();
-            _powerChoices = null;
+
+            GameAI = gameAI ?? new RandomAI();
+            HistoryEntries = new ConcurrentQueue<IPowerHistoryEntry>();
+            PowerOptions = null;
+            PowerChoices = null;
         }
 
         public void Reset()
@@ -54,12 +56,12 @@ namespace SabberStoneContract.Client
             PlayerId = 0;
 
             _userInfos.Clear();
-            while (!_historyEntries.IsEmpty)
+            while (!HistoryEntries.IsEmpty)
             {
-                _historyEntries.TryDequeue(out _);
+                HistoryEntries.TryDequeue(out _);
             }
-            _powerOptionList.Clear();
-            _powerChoices = null;
+            PowerOptions = null;
+            PowerChoices = null;
         }
 
         public void SetSendGameMessage(Action<MsgType, bool, string> sendGameMessage)
@@ -82,7 +84,7 @@ namespace SabberStoneContract.Client
 
         public void SetPowerHistory(List<IPowerHistoryEntry> powerHistoryEntries)
         {
-            powerHistoryEntries.ForEach(p => _historyEntries.Enqueue(p));
+            powerHistoryEntries.ForEach(p => HistoryEntries.Enqueue(p));
             CallPowerHistory();
         }
 
@@ -95,7 +97,7 @@ namespace SabberStoneContract.Client
 
         public void SetPowerChoices(PowerChoices powerChoices)
         {
-            _powerChoices = powerChoices;
+            PowerChoices = powerChoices;
             CallPowerChoices();
         }
 
@@ -103,15 +105,15 @@ namespace SabberStoneContract.Client
         {
             await Task.Run(() =>
             {
-                SendPowerChoicesChoice(SabberStoneAI.PowerChoices(_powerChoices));
+                SendPowerChoicesChoice(GameAI.PowerChoices(PowerChoices));
             });
         }
 
         public void SetPowerOptions(PowerOptions powerOptions)
         {
-            _powerOptionList = powerOptions.PowerOptionList;
-            if (_powerOptionList != null &&
-                _powerOptionList.Count > 0)
+            PowerOptions = powerOptions;
+            if (PowerOptions.PowerOptionList != null &&
+                PowerOptions.PowerOptionList.Count > 0)
             {
                 CallPowerOptions();
             }
@@ -121,7 +123,7 @@ namespace SabberStoneContract.Client
         {
             await Task.Run(() =>
             {
-                SendPowerOptionChoice(SabberStoneAI.PowerOptions(_powerOptionList));
+                SendPowerOptionChoice(GameAI.PowerOptions(PowerOptions.PowerOptionList));
             });
         }
 
@@ -139,7 +141,7 @@ namespace SabberStoneContract.Client
 
         public void SendPowerChoicesChoice(PowerChoices powerChoices)
         {
-            _powerChoices = null;
+            PowerChoices = null;
             _sendGameMessage(MsgType.InGame, true,
                 JsonConvert.SerializeObject(
                     new GameData()
@@ -153,7 +155,7 @@ namespace SabberStoneContract.Client
 
         public void SendPowerOptionChoice(PowerOptionChoice powerOptionChoice)
         {
-            _powerOptionList.Clear();
+            PowerOptions = null;
             _sendGameMessage(MsgType.InGame, true,
                 JsonConvert.SerializeObject(
                     new GameData()

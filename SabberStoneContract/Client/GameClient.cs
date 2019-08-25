@@ -75,7 +75,28 @@ namespace SabberStoneContract.Core
         {
             _channel = new Channel(_target, ChannelCredentials.Insecure);
             _client = new GameServerServiceClient(_channel);
-            GameClientState = GameClientState.Connected;
+
+            try
+            {
+                int timeoutSeconds = 5;
+                var serverReply = _client.Ping(new ServerRequest { Message = "Ping", }, deadline: DateTime.UtcNow.AddSeconds(timeoutSeconds));
+                if (serverReply.RequestState)
+                {
+                    GameClientState = GameClientState.Connected;
+                    return;
+                }
+            }
+            catch (RpcException exception)
+            {
+                if (exception.StatusCode != StatusCode.Unavailable)
+                {
+                    //Log.Error(exception.ToString());
+                    throw exception;
+                }
+            }
+
+            _channel.ShutdownAsync().Wait();
+            return;
         }
 
         public void Register(string accountName, string accountPsw)
@@ -172,9 +193,19 @@ namespace SabberStoneContract.Core
 
         public void Disconnect()
         {
+            if (GameClientState == GameClientState.None || _channel == null )
+            {
+                return;
+            }
+
             try
             {
-                var serverReply = _client.Disconnect(new ServerRequest(), new Metadata { new Metadata.Entry("token", _sessionToken ?? string.Empty) }, DateTime.UtcNow.AddSeconds(5));
+                int timeoutSeconds = 5;
+                var serverReply = _client.Disconnect(new ServerRequest(), new Metadata { new Metadata.Entry("token", _sessionToken ?? string.Empty) }, DateTime.UtcNow.AddSeconds(timeoutSeconds));
+                if (serverReply.RequestState)
+                {
+                    _cancellationTokenSource.Cancel();
+                }
             }
             catch (RpcException exception)
             {
@@ -184,7 +215,6 @@ namespace SabberStoneContract.Core
                     throw exception;
                 }
             }
-            _cancellationTokenSource.Cancel();
 
             _channel.ShutdownAsync().Wait();
 

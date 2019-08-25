@@ -32,13 +32,9 @@ namespace SabberStoneServer.Services
 
         public PlayState Play1State => _game.Player1.PlayState;
 
-        private PowerAllOptions _powerAllOptionsPlayer1;
-
         public UserClient Player2 { get; }
 
         public PlayState Play2State => _game.Player2.PlayState;
-
-        private PowerAllOptions _powerAllOptionsPlayer2;
 
         private Game _game;
 
@@ -228,23 +224,25 @@ namespace SabberStoneServer.Services
             if (_game.Player1.Choice != null)
             {
                 //Log.Debug($"sending Choices to player 1");
-                SendGameData(Player1, MsgType.InGame, true, GameDataType.PowerChoices, JsonConvert.SerializeObject(new PowerChoices() { ChoiceType = _game.Player1.Choice.ChoiceType, Entities = _game.Player1.Choice.Choices }));
+                var powerChoicesPlayer1 = PowerChoicesBuilder.EntityChoices(_game, _game.Player1.Choice);
+                SendGameData(Player1, MsgType.InGame, true, GameDataType.PowerChoices, JsonConvert.SerializeObject(new PowerChoices() { Index = powerChoicesPlayer1.Index, ChoiceType = powerChoicesPlayer1.ChoiceType, Entities = powerChoicesPlayer1.Entities }));
             }
             else
             {
-                _powerAllOptionsPlayer1 = PowerOptionsBuilder.AllOptions(_game, _game.Player1.Options());
-                SendGameData(Player1, MsgType.InGame, true, GameDataType.PowerOptions, JsonConvert.SerializeObject(new PowerOptions() { Index = _powerAllOptionsPlayer1.Index, PowerOptionList = _powerAllOptionsPlayer1.PowerOptionList }));
+                var powerAllOptionsPlayer1 = PowerOptionsBuilder.AllOptions(_game, _game.Player1.Options());
+                SendGameData(Player1, MsgType.InGame, true, GameDataType.PowerOptions, JsonConvert.SerializeObject(new PowerOptions() { Index = powerAllOptionsPlayer1.Index, PowerOptionList = powerAllOptionsPlayer1.PowerOptionList }));
             }
 
             if (_game.Player2.Choice != null)
             {
                 //Log.Debug($"sending Choices to player 2");
-                SendGameData(Player2, MsgType.InGame, true, GameDataType.PowerChoices, JsonConvert.SerializeObject(new PowerChoices() { ChoiceType = _game.Player2.Choice.ChoiceType, Entities = _game.Player2.Choice.Choices }));
+                var powerChoicesPlayer2 = PowerChoicesBuilder.EntityChoices(_game, _game.Player2.Choice);
+                SendGameData(Player2, MsgType.InGame, true, GameDataType.PowerChoices, JsonConvert.SerializeObject(new PowerChoices() { Index = powerChoicesPlayer2.Index, ChoiceType = powerChoicesPlayer2.ChoiceType, Entities = powerChoicesPlayer2.Entities }));
             }
             else
             {
-                _powerAllOptionsPlayer2 = PowerOptionsBuilder.AllOptions(_game, _game.Player2.Options());
-                SendGameData(Player2, MsgType.InGame, true, GameDataType.PowerOptions, JsonConvert.SerializeObject(new PowerOptions() { Index = _powerAllOptionsPlayer2.Index, PowerOptionList = _powerAllOptionsPlayer2.PowerOptionList }));
+                var powerAllOptionsPlayer2 = PowerOptionsBuilder.AllOptions(_game, _game.Player2.Options());
+                SendGameData(Player2, MsgType.InGame, true, GameDataType.PowerOptions, JsonConvert.SerializeObject(new PowerOptions() { Index = powerAllOptionsPlayer2.Index, PowerOptionList = powerAllOptionsPlayer2.PowerOptionList }));
             }
         }
 

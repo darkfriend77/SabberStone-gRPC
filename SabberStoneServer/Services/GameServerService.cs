@@ -52,16 +52,18 @@ namespace SabberStoneServer.Services
         {
             if (!TokenAuthentification(context.RequestHeaders, out string clientTokenValue))
             {
-                return Task.FromResult(new ServerReply() { RequestState = false });
+                return Task.FromResult(new ServerReply() { RequestState = true });
             }
 
-            if (!_registredUsers.TryGetValue(clientTokenValue, out UserClient userDataInfo))
+            if (!_registredUsers.TryRemove(clientTokenValue, out UserClient userDataInfo))
             {
-                return Task.FromResult(new ServerReply() { RequestState = false });
+                return Task.FromResult(new ServerReply() { RequestState = true });
             }
 
             // stop stream channel
             userDataInfo.CancellationTokenSource.Cancel();
+
+            userDataInfo.UserState = UserState.None;
 
             var reply = new ServerReply
             {
