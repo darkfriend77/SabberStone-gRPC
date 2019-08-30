@@ -18,9 +18,22 @@ namespace SabberStoneXConsole
         static void Main(string[] args)
         {
 
-            RunServerWith(2);
+            RunServerWith(1);
+            //FullTest();
+            //RunServer();
 
             Console.ReadKey();
+        }
+
+        public static void RunServer()
+        {
+            var port = 50051;
+
+            GameServer server = new GameServer(port);
+            server.Start();
+
+            var matchMaker = server.GetMatchMakerService();
+            matchMaker.Start(1);
         }
 
         public static void DisconnectTest()
@@ -133,7 +146,9 @@ namespace SabberStoneXConsole
                     if (oldState != GameClientState.InGame)
                     {
                         Thread.Sleep(200);
-                        Queue();
+                        Queue(GameType.Normal, DeckType.DeckString, "AAEBAQcCrwSRvAIOHLACkQP/A44FqAXUBaQG7gbnB+8HgrACiLACub8CAA==");
+                        //Queue();
+                        // [EU Legend #1 Tempo Mage] AAEBAf0ECnH2Ar8D7AW5BuwHuQ36Dp4QixQKwwG7ApUD5gSWBfcNgQ6HD4kPkBAA
                     }
                     else
                     {

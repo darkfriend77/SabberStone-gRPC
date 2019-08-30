@@ -26,7 +26,6 @@ enum DeckType
 {
 	Random = 0;
 	DeckString = 1;
-	CardIds = 2;
 }
 
 enum MsgType

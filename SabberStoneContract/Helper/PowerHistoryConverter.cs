@@ -53,6 +53,8 @@ namespace SabberStoneContract.Core
                     history = new PowerHistoryMetaData();
                     break;
                 case PowerType.CHANGE_ENTITY:
+                    history = new PowerHistoryChangeEntity();
+                    break;
                 case PowerType.RESET_GAME:
                 default:
                     throw new ArgumentOutOfRangeException();

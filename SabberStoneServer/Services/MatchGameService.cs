@@ -84,20 +84,44 @@ namespace SabberStoneServer.Services
         public void Start()
         {
             Log.Info($"[_gameId:{GameId}] Game creation is happening in a few seconds!!!");
-            var gameConfig = new GameConfig
+
+            var gameConfigBuilder = GameConfigBuilder.Create();
+
+            switch (Player1.DeckType)
             {
-                //StartPlayer = 1,
-                FormatType = FormatType.FT_STANDARD,
-                Player1HeroClass = Cards.HeroClasses[_random.Next(9)],
-                Player1Deck = new List<Card>(),
-                Player2HeroClass = Cards.HeroClasses[_random.Next(9)],
-                Player2Deck = new List<Card>(),
-                SkipMulligan = true,
-                Shuffle = true,
-                FillDecks = true,
-                Logging = true,
-                History = true
-            };
+                case DeckType.Random:
+                    gameConfigBuilder = gameConfigBuilder.SetPlayer1(Player1.AccountName, null, Cards.HeroClasses[_random.Next(9)], new List<Card>(), FormatType.FT_STANDARD);
+                    break;
+                case DeckType.DeckString:
+                    gameConfigBuilder = gameConfigBuilder.SetPlayer1(Player1.AccountName, Player1.DeckData);
+                    break;
+                default:
+                    gameConfigBuilder = gameConfigBuilder.SetPlayer1(Player1.AccountName, null, Cards.HeroClasses[_random.Next(9)], new List<Card>(), FormatType.FT_STANDARD);
+                    break;
+            }
+
+
+            switch (Player2.DeckType)
+            {
+                case DeckType.Random:
+                    gameConfigBuilder = gameConfigBuilder.SetPlayer2(Player2.AccountName, null, Cards.HeroClasses[_random.Next(9)], new List<Card>(), FormatType.FT_STANDARD);
+                    break;
+                case DeckType.DeckString:
+                    gameConfigBuilder = gameConfigBuilder.SetPlayer2(Player2.AccountName, Player2.DeckData);
+                    break;
+                default:
+                    gameConfigBuilder = gameConfigBuilder.SetPlayer2(Player2.AccountName, null, Cards.HeroClasses[_random.Next(9)], new List<Card>(), FormatType.FT_STANDARD);
+                    break;
+            }
+
+            var gameConfig = gameConfigBuilder
+                .SkipMulligan(true)
+                .Shuffle(true)
+                .FillDecks(true)
+                .Logging(true)
+                .History(true)
+                .Build();
+
             var newGame = new Game(gameConfig);
 
             // don't start when game is null
