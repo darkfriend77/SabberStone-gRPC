@@ -8,7 +8,10 @@ using SabberStoneCore.Kettle;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,10 +22,8 @@ namespace SabberStoneContract.Core
     public class GameClient
     {
         //private static readonly ILog Log = Logger.Instance.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-
-        private readonly int _port;
-
-        private readonly string _target;
+        private readonly string _url;
+        private readonly Credential _credential;
 
         private Channel _channel;
 
@@ -40,26 +41,25 @@ namespace SabberStoneContract.Core
 
         private GameController _gameController;
 
+        public readonly StringBuilder Logs = new StringBuilder();
+
+        private TaskCompletionSource<object> _matchTaskCompletionSource;
+
         public GameClientState GameClientState
         {
             get => _gameClientState;
             private set
             {
-                var oldValue = _gameClientState;
+                //var oldValue = _gameClientState;
                 _gameClientState = value;
-                CallGameClientState(oldValue, value);
+                //CallGameClientState(oldValue, value);
             }
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="port"></param>
-        /// <param name="sabberStoneAI"></param>
-        public GameClient(string targetIp, int port, GameController gameController)
+        public GameClient(string ip, int port, Credential credential, GameController gameController)
         {
-            _port = port;
-            _target = $"{targetIp}:{_port}";
+            _url = $"{ip}:{port}";
+            _credential = credential;
 
             _cancellationTokenSource = new CancellationTokenSource();
 
@@ -69,11 +69,15 @@ namespace SabberStoneContract.Core
             _gameController.SetSendGameMessage(SendGameMessage);
 
             GameClientState = GameClientState.None;
+
+            // TODO: File logger
         }
 
-        public void Connect()
+        public bool Connect()
         {
-            _channel = new Channel(_target, ChannelCredentials.Insecure);
+            //ChannelCredentials.Create(ChannelCredentials.Insecure, CallCredentials.)
+            //var ssl = new SslCredentials();
+            _channel = new Channel(_url, ChannelCredentials.Insecure);
             _client = new GameServerServiceClient(_channel);
 
             try
@@ -82,8 +86,9 @@ namespace SabberStoneContract.Core
                 var serverReply = _client.Ping(new ServerRequest { Message = "Ping", }, deadline: DateTime.UtcNow.AddSeconds(timeoutSeconds));
                 if (serverReply.RequestState)
                 {
-                    GameClientState = GameClientState.Connected;
-                    return;
+                    //GameClientState = GameClientState.Connected;
+
+                    return Register();
                 }
             }
             catch (RpcException exception)
@@ -91,36 +96,45 @@ namespace SabberStoneContract.Core
                 if (exception.StatusCode != StatusCode.Unavailable)
                 {
                     //Log.Error(exception.ToString());
-                    throw exception;
+                    throw;
                 }
             }
 
             _channel.ShutdownAsync().Wait();
-            return;
+
+            return false;
         }
 
-        public void Register(string accountName, string accountPsw)
+        protected bool Register()
         {
-            if (GameClientState != GameClientState.Connected)
-            {
-                //Log.Warn("Client isn't connected.");
-                return;
-            }
+            //if (GameClientState != GameClientState.Connected)
+            //{
+            //    //Log.Warn("Client isn't connected.");
+            //    return;
+            //}
 
-            var authReply = _client.Authentication(new AuthRequest { AccountName = accountName, AccountPsw = accountPsw });
+            GameClientState = GameClientState.Connected;
+
+            AuthReply authReply = _client.Authentication(
+                new AuthRequest
+                {
+                    AccountName = _credential.Id, 
+                    AccountPsw = _credential.Password
+                });
 
             if (!authReply.RequestState)
             {
                 //Log.Warn("Bad RegisterRequest.");
-                return;
+                return false;
             }
 
             _sessionId = authReply.SessionId;
             _sessionToken = authReply.SessionToken;
 
-            GameServerChannel();
+            GameServerChannelAsync();
 
             GameClientState = GameClientState.Registred;
+            return true;
         }
 
         public void MatchGame()
@@ -140,7 +154,7 @@ namespace SabberStoneContract.Core
             }
         }
 
-        public async void GameServerChannel()
+        private async void GameServerChannelAsync()
         {
             using (var call = _client.GameServerChannel(headers: new Metadata { new Metadata.Entry("token", _sessionToken) }, cancellationToken: _cancellationTokenSource.Token))
             {
@@ -252,6 +266,9 @@ namespace SabberStoneContract.Core
 
                     _gameController.GameId = gameData.GameId;
                     _gameController.PlayerId = gameData.PlayerId;
+
+                    _matchTaskCompletionSource = new TaskCompletionSource<object>();
+
                     GameClientState = GameClientState.Invited;
 
                     // action call here
@@ -288,7 +305,9 @@ namespace SabberStoneContract.Core
 
                         case GameDataType.Result:
                             GameClientState = GameClientState.Registred;
+                            Disconnect();
                             _gameController.SetResult();
+                            _matchTaskCompletionSource.SetResult(new object());
                             break;
                     }
                     break;
@@ -303,7 +322,7 @@ namespace SabberStoneContract.Core
                 return;
             }
 
-            var queueReply = _client.GameQueue(
+            ServerReply queueReply = _client.GameQueue(
                 new QueueRequest
                 {
                     GameType = gameType,
@@ -320,6 +339,13 @@ namespace SabberStoneContract.Core
             }
 
             GameClientState = GameClientState.Queued;
+
+            _matchTaskCompletionSource = new TaskCompletionSource<object>();
+        }
+
+        public void WaitMatch()
+        {
+            var obj = _matchTaskCompletionSource.Task.Result;
         }
 
         public async virtual void CallGameClientState(GameClientState oldState, GameClientState newState)
@@ -338,5 +364,13 @@ namespace SabberStoneContract.Core
             });
         }
 
+        /// <summary>
+        /// A token class for authentication.
+        /// </summary>
+        public class Credential
+        {
+            public string Id { get; set; }
+            public string Password { get; set; }
+        }
     }
 }

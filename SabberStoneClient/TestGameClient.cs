@@ -8,7 +8,7 @@ namespace SabberStoneClient
 {
     public class TestGameClient : GameClient
     {
-        public TestGameClient(string targetIp, int port, GameController gameController) : base(targetIp, port, gameController)
+        public TestGameClient(string ip, int port, GameController gameController) : base(ip, port, null, gameController)
         {
         }
     }

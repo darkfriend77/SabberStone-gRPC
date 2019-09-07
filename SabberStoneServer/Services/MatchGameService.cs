@@ -145,9 +145,11 @@ namespace SabberStoneServer.Services
             switch (gameData.GameDataType)
             {
                 case GameDataType.PowerOption:
-                    var powerOptionChoice = JsonConvert.DeserializeObject<PowerOptionChoice>(gameData.GameDataObject);
-                    var optionTask = SabberStoneConverter.CreatePlayerTaskOption(_game, powerOptionChoice.PowerOption, powerOptionChoice.Target, powerOptionChoice.Position, powerOptionChoice.SubOption);
-
+                    // 1. Deserialise the given GameData == Option
+                    PowerOptionChoice powerOptionChoice = JsonConvert.DeserializeObject<PowerOptionChoice>(gameData.GameDataObject);
+                    // 2. Convert it to the SabberStone object
+                    PlayerTask optionTask = SabberStoneConverter.CreatePlayerTaskOption(_game, powerOptionChoice.PowerOption, powerOptionChoice.Target, powerOptionChoice.Position, powerOptionChoice.SubOption);
+                    // 3. Run SabberStoneCore
                     _game.Process(optionTask);
 
                     //if (powerOptionChoice.PowerOption.OptionType == OptionType.END_TURN)
@@ -155,9 +157,11 @@ namespace SabberStoneServer.Services
                     //    Log.Info($"State[{_game.State}]-T[{_game.Turn}] Hero1: {_game.Player1.Hero.Health} HP // Hero2: {_game.Player2.Hero.Health} HP");
                     //}
 
+                    // 4. Broadcast the processed option and the resulting histories to the players
                     SendActionToPlayers(gameData.PlayerId, gameData.GameDataType, gameData.GameDataObject);
                     SendHistoryToPlayers();
 
+                    // 5. Send the current available options
                     if (_game.State == State.RUNNING)
                     {
                         SendOptionsOrChoicesToPlayers();

@@ -8,17 +8,31 @@ using SabberStoneCore.Model;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using SabberStoneCore.Enums;
+using SabberStoneCore.Model.Entities;
+using SabberStoneCore.Tasks.PlayerTasks;
 
 namespace SabberStoneContract.Client
 {
     public class GameController
     {
-        private Action<MsgType, bool, string> _sendGameMessage { get; set; }
-
+        private Action<MsgType, bool, string> _sendGameMessage;
         private List<UserInfo> _userInfos;
+        // Game with full information.
+        private Game _originalGame;
+        // Partially Observable Game.
+        private Game _poGame;
+        private ConcurrentQueue<IPowerHistoryEntry> HistoryEntries { get; }
+
+        private PowerChoices PowerChoices { get; set; }
+
+        private PowerOptions PowerOptions { get; set; }
+
+        private IGameAI GameAI { get; }
 
         public int GameId { get; set; }
 
@@ -28,21 +42,12 @@ namespace SabberStoneContract.Client
 
         public UserInfo OpUserInfo => _userInfos.FirstOrDefault(p => p.PlayerId != PlayerId);
 
-        public ConcurrentQueue<IPowerHistoryEntry> HistoryEntries { get; }
 
-        public PowerChoices PowerChoices { get; set; }
-
-        public PowerOptions PowerOptions { get; set; }
-
-        public Game _game;
-
-        public IGameAI GameAI { get; }
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="gameAI"></param>
-        /// <param name="sendGameMessage"></param>
         public GameController(IGameAI gameAI)
         {
             _userInfos = new List<UserInfo>();
@@ -53,8 +58,10 @@ namespace SabberStoneContract.Client
             PowerChoices = null;
         }
 
-        public void Reset()
+        internal void Reset()
         {
+            _originalGame = null;
+
             GameId = 0;
             PlayerId = 0;
 
@@ -67,66 +74,68 @@ namespace SabberStoneContract.Client
             PowerChoices = null;
         }
 
-        public void SetSendGameMessage(Action<MsgType, bool, string> sendGameMessage)
+        internal void SetSendGameMessage(Action<MsgType, bool, string> sendGameMessage)
         {
             _sendGameMessage = sendGameMessage;
         }
 
-        public void SetUserInfos(List<UserInfo> userInfos)
+        internal void SetUserInfos(List<UserInfo> userInfos)
         {
             _userInfos = userInfos;
 
             var gameConfigInfo = userInfos[0].GameConfigInfo;
 
-            _game = SabberStoneConverter.CreateGame(userInfos[0], userInfos[1], gameConfigInfo);
-
-            _game.StartGame();
+            _originalGame = SabberStoneConverter.CreateGame(userInfos[0], userInfos[1], gameConfigInfo);
+            _originalGame.StartGame();
+            _poGame = CreatePartiallyObservableGame(_originalGame);
 
             CallInitialisation();
         }
 
-        public virtual async void CallInitialisation()
+        protected virtual async void CallInitialisation()
         {
             await Task.Run(() =>
             {
             });
         }
 
-        public void SetPowerHistory(List<IPowerHistoryEntry> powerHistoryEntries)
+        internal void SetPowerHistory(List<IPowerHistoryEntry> powerHistoryEntries)
         {
             powerHistoryEntries.ForEach(p => HistoryEntries.Enqueue(p));
             CallPowerHistory();
         }
 
-        public virtual async void CallPowerHistory()
+        protected virtual async void CallPowerHistory()
         {
             await Task.Run(() =>
             {
             });
         }
 
-        public void SetPowerChoices(PowerChoices powerChoices)
+        internal void SetPowerChoices(PowerChoices powerChoices)
         {
             PowerChoices = powerChoices;
             CallPowerChoices();
         }
 
-        public virtual async void CallPowerChoices()
+        protected virtual async void CallPowerChoices()
         {
             await Task.Run(() =>
             {
-                SendPowerChoicesChoice(GameAI.PowerChoices(PowerChoices));
+                SendPowerChoicesChoice(GameAI.PowerChoices(_poGame, PowerChoices));
             });
         }
 
-        public void SetPowerChoice(int playerId, PowerChoices powerChoices)
+        internal void SetPowerChoice(int playerId, PowerChoices powerChoices)
         {
-            var choiceTask = SabberStoneConverter.CreatePlayerTaskChoice(_game, playerId, powerChoices.ChoiceType, powerChoices.Entities);
+            var choiceTask = SabberStoneConverter.CreatePlayerTaskChoice(_originalGame, playerId, powerChoices.ChoiceType, powerChoices.Entities);
 
-            _game.Process(choiceTask);
+            _originalGame.Process(choiceTask);
+
+            _poGame = CreatePartiallyObservableGame(_originalGame);
         }
 
-        public void SetPowerOptions(PowerOptions powerOptions)
+        internal void SetPowerOptions(PowerOptions powerOptions)
         {
             PowerOptions = powerOptions;
             if (PowerOptions.PowerOptionList != null &&
@@ -136,27 +145,34 @@ namespace SabberStoneContract.Client
             }
         }
 
-        public virtual async void CallPowerOptions()
+        protected virtual async void CallPowerOptions()
         {
             await Task.Run(() =>
             {
-                SendPowerOptionChoice(GameAI.PowerOptions(PowerOptions.PowerOptionList));
+                SendPowerOptionChoice(GameAI.PowerOptions(_poGame, PowerOptions.PowerOptionList));
             });
         }
 
-        public void SetPowerOption(int playerId, PowerOptionChoice powerOptionChoice)
+        internal void SetPowerOption(int playerId, PowerOptionChoice powerOptionChoice)
         {
-            var optionTask = SabberStoneConverter.CreatePlayerTaskOption(_game, powerOptionChoice.PowerOption, powerOptionChoice.Target, powerOptionChoice.Position, powerOptionChoice.SubOption);
+            PlayerTask optionTask = SabberStoneConverter.CreatePlayerTaskOption(_originalGame, powerOptionChoice.PowerOption, powerOptionChoice.Target, powerOptionChoice.Position, powerOptionChoice.SubOption);
 
-            _game.Process(optionTask);
+            //Logger?.WriteLine(SimplePrinter.ActionPrint(optionTask));
+
+            _originalGame.Process(optionTask);
+
+            _poGame = CreatePartiallyObservableGame(_originalGame);
+
+            //if (optionTask.PlayerTaskType == SabberStoneCore.Tasks.PlayerTasks.PlayerTaskType.END_TURN)
+            //    Logger?.WriteLine(SimplePrinter.PrintGame(_poGame));
         }
 
-        public void SetResult()
+        internal void SetResult()
         {
             //Console.WriteLine($"{MyUserInfo.AccountName}: {_game.Hash()}");
         }
 
-        public void SendInvitationReply(bool accept)
+        internal void SendInvitationReply(bool accept)
         {
             _sendGameMessage(MsgType.Invitation, accept,
                 JsonConvert.SerializeObject(
@@ -168,7 +184,7 @@ namespace SabberStoneContract.Client
                     }));
         }
 
-        public void SendPowerChoicesChoice(PowerChoices powerChoices)
+        private void SendPowerChoicesChoice(PowerChoices powerChoices)
         {
             PowerChoices = null;
             _sendGameMessage(MsgType.InGame, true,
@@ -182,7 +198,7 @@ namespace SabberStoneContract.Client
                     }));
         }
 
-        public void SendPowerOptionChoice(PowerOptionChoice powerOptionChoice)
+        private void SendPowerOptionChoice(PowerOptionChoice powerOptionChoice)
         {
             PowerOptions = null;
             _sendGameMessage(MsgType.InGame, true,
@@ -195,5 +211,42 @@ namespace SabberStoneContract.Client
                         GameDataObject = JsonConvert.SerializeObject(powerOptionChoice)
                     }));
         }
+
+        private static Game CreatePartiallyObservableGame(Game fullGame)
+        {
+            Game game = fullGame.Clone();
+
+            SabberStoneCore.Model.Entities.Controller op = game.CurrentOpponent;
+            
+            SabberStoneCore.Model.Zones.HandZone hand = op.HandZone;
+
+            //op.DeckCards = 
+
+            ReadOnlySpan<IPlayable> span = hand.GetSpan();
+            // Replace cards in opponent's hand
+            for (int i = span.Length - 1; i >= 0; --i)
+            {
+                hand.Remove(span[i]);
+                hand.Add(new Unknown(in op, PlaceHolder, span[i].Id));
+            }
+
+            game.AuraUpdate();
+
+            span = op.DeckZone.GetSpan();
+            for (int i = 0; i < span.Length; i++)
+                span[i].ActivatedTrigger?.Remove();
+
+            var deck = new SabberStoneCore.Model.Zones.DeckZone(op);
+            for (int i = 0; i < span.Length; i++)
+            {
+                span[i].ActivatedTrigger?.Remove();
+                deck.Add(new Unknown(in op, PlaceHolder, span[i].Id));
+            }
+            op.DeckZone = deck;
+
+            return game;
+        }
+
+        private static readonly Dictionary<GameTag, int> PlaceHolder = new Dictionary<GameTag, int>(0);
     }
 }

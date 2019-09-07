@@ -38,7 +38,7 @@ namespace SabberStoneXConsole
 
         public static void DisconnectTest()
         {
-            GameClient client = new GameClient("127.0.0.1", 50051, new GameController(new RandomAI()));
+            GameClient client = new GameClient("127.0.0.1", 50051, null, new GameController(new RandomAI()));
 
             client.Connect();
             client.Disconnect();
@@ -74,7 +74,7 @@ namespace SabberStoneXConsole
         public static void SimpleTest()
         {
             int port = 50051;
-            GameClient client = new GameClient("127.0.0.1", port, new GameController(new RandomAI()));
+            GameClient client = new GameClient("127.0.0.1", port, null, new GameController(new RandomAI()));
             Console.WriteLine(client.GameClientState);
             client.Connect();
             Console.WriteLine(client.GameClientState);
@@ -126,7 +126,7 @@ namespace SabberStoneXConsole
     public class TestClient : GameClient
     {
         private string _accountName;
-        public TestClient(string accountName, string targetIp, int port, GameController gameController) : base(targetIp, port, gameController)
+        public TestClient(string accountName, string targetIp, int port, GameController gameController) : base(targetIp, port, null, gameController)
         {
             _accountName = accountName;
         }
@@ -139,7 +139,7 @@ namespace SabberStoneXConsole
                     break;
 
                 case GameClientState.Connected:
-                    Register(_accountName, "");
+                    Register();
                     break;
 
                 case GameClientState.Registred:
