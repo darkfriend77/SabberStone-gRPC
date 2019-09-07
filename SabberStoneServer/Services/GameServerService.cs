@@ -107,7 +107,6 @@ namespace SabberStoneServer.Services
                 AccountName = request.AccountName,
                 UserState = UserState.Connected,
                 GameId = -1,
-                DeckType = DeckType.Random,
                 DeckData = string.Empty,
                 PlayerState = PlayerState.None,
                 PlayerId = -1
@@ -262,7 +261,6 @@ namespace SabberStoneServer.Services
 
             // updated user informations
             userDataInfo.UserState = UserState.Queued;
-            userDataInfo.DeckType = request.DeckType;
             userDataInfo.DeckData = request.DeckData;
 
             return Task.FromResult(new ServerReply

@@ -18,8 +18,8 @@ namespace SabberStoneXConsole
         static void Main(string[] args)
         {
 
-            RunServerWith(1);
-            //FullTest();
+            //RunServerWith(2);
+            FullTest();
             //RunServer();
 
             Console.ReadKey();
@@ -146,7 +146,7 @@ namespace SabberStoneXConsole
                     if (oldState != GameClientState.InGame)
                     {
                         Thread.Sleep(200);
-                        Queue(GameType.Normal, DeckType.DeckString, "AAEBAQcCrwSRvAIOHLACkQP/A44FqAXUBaQG7gbnB+8HgrACiLACub8CAA==");
+                        Queue(GameType.Normal, "AAEBAQcCrwSRvAIOHLACkQP/A44FqAXUBaQG7gbnB+8HgrACiLACub8CAA==");
                         //Queue();
                         // [EU Legend #1 Tempo Mage] AAEBAf0ECnH2Ar8D7AW5BuwHuQ36Dp4QixQKwwG7ApUD5gSWBfcNgQ6HD4kPkBAA
                     }

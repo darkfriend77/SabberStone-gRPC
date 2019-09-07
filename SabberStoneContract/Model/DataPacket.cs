@@ -32,24 +32,20 @@ namespace SabberStoneContract.Model
         public virtual string AccountName { get; set; }
         public virtual UserState UserState { get; set; }
         public virtual int GameId { get; set; }
-        public virtual DeckType DeckType { get; set; }
         public virtual string DeckData { get; set; }
         public virtual PlayerState PlayerState { get; set; }
         public virtual int PlayerId { get; set; }
-        public UserInfo OpenUserInfo()
-        {
-            return new UserInfo()
-            {
-                SessionId = 0,
-                AccountName = AccountName,
-                UserState = UserState.None,
-                GameId = GameId,
-                DeckType = DeckType.Random,
-                DeckData = null,
-                PlayerState = PlayerState.None,
-                PlayerId = PlayerId
-            };
-        }
+        public virtual GameConfigInfo GameConfigInfo { get; set; }
+    }
+
+    public class GameConfigInfo
+    {
+        public virtual bool SkipMulligan { get; set; }
+        public virtual bool Shuffle { get; set; }
+        public virtual bool FillDecks { get; set; }
+        public virtual bool Logging { get; set; }
+        public virtual bool History { get; set; }
+        public virtual int RandomSeed { get; set; }
     }
 
     public enum GameDataType
@@ -67,6 +63,7 @@ namespace SabberStoneContract.Model
     {
         public virtual int GameId { get; set; }
         public virtual int PlayerId { get; set; }
+        public virtual int Seed { get; set; }
         public virtual GameDataType GameDataType { get; set; }
         public virtual string GameDataObject { get; set; }
     }

@@ -56,8 +56,7 @@ message AuthReply {
 
 message QueueRequest {
 	GameType gameType = 1;
-	DeckType deckType = 2;
-	string deckData = 3;
+	string deckData = 2;
 }
 
 message MatchGameRequest {

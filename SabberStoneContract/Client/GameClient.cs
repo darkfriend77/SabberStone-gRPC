@@ -287,7 +287,7 @@ namespace SabberStoneContract.Core
             }
         }
 
-        public void Queue(GameType gameType = GameType.Normal, DeckType deckType = DeckType.Random, string deckData = null)
+        public void Queue(GameType gameType = GameType.Normal, string deckData = "")
         {
             if (GameClientState != GameClientState.Registred)
             {
@@ -299,8 +299,7 @@ namespace SabberStoneContract.Core
                 new QueueRequest
                 {
                     GameType = gameType,
-                    DeckType = deckType,
-                    DeckData = deckData ?? string.Empty
+                    DeckData = deckData
                 },
                 new Metadata {
                     new Metadata.Entry("token", _sessionToken)

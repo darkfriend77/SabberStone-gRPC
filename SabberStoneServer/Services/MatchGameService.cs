@@ -81,45 +81,19 @@ namespace SabberStoneServer.Services
             SendGameData(Player2, MsgType.Invitation, true, GameDataType.None);
         }
 
-        public void Start()
+        public void Start(GameConfigInfo gameConfigInfo)
         {
             Log.Info($"[_gameId:{GameId}] Game creation is happening in a few seconds!!!");
 
-            var gameConfigBuilder = GameConfigBuilder.Create();
-
-            switch (Player1.DeckType)
-            {
-                case DeckType.Random:
-                    gameConfigBuilder = gameConfigBuilder.SetPlayer1(Player1.AccountName, null, Cards.HeroClasses[_random.Next(9)], new List<Card>(), FormatType.FT_STANDARD);
-                    break;
-                case DeckType.DeckString:
-                    gameConfigBuilder = gameConfigBuilder.SetPlayer1(Player1.AccountName, Player1.DeckData);
-                    break;
-                default:
-                    gameConfigBuilder = gameConfigBuilder.SetPlayer1(Player1.AccountName, null, Cards.HeroClasses[_random.Next(9)], new List<Card>(), FormatType.FT_STANDARD);
-                    break;
-            }
-
-
-            switch (Player2.DeckType)
-            {
-                case DeckType.Random:
-                    gameConfigBuilder = gameConfigBuilder.SetPlayer2(Player2.AccountName, null, Cards.HeroClasses[_random.Next(9)], new List<Card>(), FormatType.FT_STANDARD);
-                    break;
-                case DeckType.DeckString:
-                    gameConfigBuilder = gameConfigBuilder.SetPlayer2(Player2.AccountName, Player2.DeckData);
-                    break;
-                default:
-                    gameConfigBuilder = gameConfigBuilder.SetPlayer2(Player2.AccountName, null, Cards.HeroClasses[_random.Next(9)], new List<Card>(), FormatType.FT_STANDARD);
-                    break;
-            }
-
-            var gameConfig = gameConfigBuilder
-                .SkipMulligan(true)
-                .Shuffle(true)
-                .FillDecks(true)
-                .Logging(true)
-                .History(true)
+            var gameConfig = GameConfigBuilder.Create()
+                .SetPlayer1(Player1.AccountName, Player1.DeckData)
+                .SetPlayer2(Player2.AccountName, Player2.DeckData)
+                .SkipMulligan(gameConfigInfo.SkipMulligan)
+                .Shuffle(gameConfigInfo.Shuffle)
+                .FillDecks(gameConfigInfo.FillDecks)
+                .Logging(gameConfigInfo.Logging)
+                .History(gameConfigInfo.History)
+                .RandomSeed(gameConfigInfo.RandomSeed)
                 .Build();
 
             var newGame = new Game(gameConfig);
@@ -149,13 +123,27 @@ namespace SabberStoneServer.Services
 
             if (Player1.UserState == UserState.InGame && Player2.UserState == UserState.InGame)
             {
-                Start();
+                GameConfigInfo gameConfigInfo = new GameConfigInfo()
+                {
+                    SkipMulligan = true,
+                    Shuffle = true,
+                    FillDecks = true,
+                    Logging = true,
+                    History = true,
+                    RandomSeed = _random.Next()
+                };
+
+                Start(gameConfigInfo);
+
+                Player1.GameConfigInfo = gameConfigInfo;
+                Player2.GameConfigInfo = gameConfigInfo;
 
                 // we send over opponend user info which is reduced to open available informations
                 SendGameData(Player1, MsgType.InGame, true, GameDataType.Initialisation,
-                    JsonConvert.SerializeObject(new List<UserInfo> { Player1, Player2.OpenUserInfo() }));
+                    JsonConvert.SerializeObject(new List<UserInfo> { Player1, Player2 }));
+
                 SendGameData(Player2, MsgType.InGame, true, GameDataType.Initialisation,
-                    JsonConvert.SerializeObject(new List<UserInfo> { Player1.OpenUserInfo(), Player2 }));
+                    JsonConvert.SerializeObject(new List<UserInfo> { Player1, Player2 }));
 
                 SendHistoryToPlayers();
                 SendOptionsOrChoicesToPlayers();
@@ -180,10 +168,10 @@ namespace SabberStoneServer.Services
 
                     _game.Process(optionTask);
 
-                    if (powerOptionChoice.PowerOption.OptionType == OptionType.END_TURN)
-                    {
-                        Log.Info($"State[{_game.State}]-T[{_game.Turn}] Hero1: {_game.Player1.Hero.Health} HP // Hero2: {_game.Player2.Hero.Health} HP");
-                    }
+                    //if (powerOptionChoice.PowerOption.OptionType == OptionType.END_TURN)
+                    //{
+                    //    Log.Info($"State[{_game.State}]-T[{_game.Turn}] Hero1: {_game.Player1.Hero.Health} HP // Hero2: {_game.Player2.Hero.Health} HP");
+                    //}
 
                     SendHistoryToPlayers();
 
