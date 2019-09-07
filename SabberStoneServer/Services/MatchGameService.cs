@@ -1,5 +1,6 @@
 ﻿using log4net;
 using Newtonsoft.Json;
+using SabberStoneContract.Helper;
 using SabberStoneContract.Model;
 using SabberStoneCore.Config;
 using SabberStoneCore.Enums;
@@ -85,26 +86,7 @@ namespace SabberStoneServer.Services
         {
             Log.Info($"[_gameId:{GameId}] Game creation is happening in a few seconds!!!");
 
-            var gameConfig = GameConfigBuilder.Create()
-                .SetPlayer1(Player1.AccountName, Player1.DeckData)
-                .SetPlayer2(Player2.AccountName, Player2.DeckData)
-                .SkipMulligan(gameConfigInfo.SkipMulligan)
-                .Shuffle(gameConfigInfo.Shuffle)
-                .FillDecks(gameConfigInfo.FillDecks)
-                .Logging(gameConfigInfo.Logging)
-                .History(gameConfigInfo.History)
-                .RandomSeed(gameConfigInfo.RandomSeed)
-                .Build();
-
-            var newGame = new Game(gameConfig);
-
-            // don't start when game is null
-            if (_game != null)
-            {
-                return;
-            }
-
-            _game = newGame;
+            _game = SabberStoneConverter.CreateGame(Player1, Player2, gameConfigInfo);
 
             Log.Info($"[_gameId:{GameId}] Game creation done!");
             _game.StartGame();
@@ -162,9 +144,9 @@ namespace SabberStoneServer.Services
 
             switch (gameData.GameDataType)
             {
-                case GameDataType.PowerOptions:
+                case GameDataType.PowerOption:
                     var powerOptionChoice = JsonConvert.DeserializeObject<PowerOptionChoice>(gameData.GameDataObject);
-                    var optionTask = ProcessPowerOptionsData(powerOptionChoice.PowerOption, powerOptionChoice.Target, powerOptionChoice.Position, powerOptionChoice.SubOption);
+                    var optionTask = SabberStoneConverter.CreatePlayerTaskOption(_game, powerOptionChoice.PowerOption, powerOptionChoice.Target, powerOptionChoice.Position, powerOptionChoice.SubOption);
 
                     _game.Process(optionTask);
 
@@ -173,6 +155,7 @@ namespace SabberStoneServer.Services
                     //    Log.Info($"State[{_game.State}]-T[{_game.Turn}] Hero1: {_game.Player1.Hero.Health} HP // Hero2: {_game.Player2.Hero.Health} HP");
                     //}
 
+                    SendActionToPlayers(gameData.PlayerId, gameData.GameDataType, gameData.GameDataObject);
                     SendHistoryToPlayers();
 
                     if (_game.State == State.RUNNING)
@@ -185,9 +168,9 @@ namespace SabberStoneServer.Services
                     }
                     break;
 
-                case GameDataType.PowerChoices:
+                case GameDataType.PowerChoice:
                     var powerChoices = JsonConvert.DeserializeObject<PowerChoices>(gameData.GameDataObject);
-                    var choiceTask = ProcessPowerChoiceData(gameData.PlayerId, powerChoices.ChoiceType, powerChoices.Entities);
+                    var choiceTask = SabberStoneConverter.CreatePlayerTaskChoice(_game, gameData.PlayerId, powerChoices.ChoiceType, powerChoices.Entities);
 
                     _game.Process(choiceTask);
 
@@ -199,6 +182,7 @@ namespace SabberStoneServer.Services
                         _game.MainBegin();
                     }
 
+                    SendActionToPlayers(gameData.PlayerId, gameData.GameDataType, gameData.GameDataObject);
                     SendHistoryToPlayers();
 
                     if (_game.State == State.RUNNING)
@@ -217,6 +201,12 @@ namespace SabberStoneServer.Services
                 default:
                     break;
             }
+        }
+
+        private void SendActionToPlayers(int playerId, GameDataType gameDataType, string gameDataObject)
+        {
+            SendGameData(Player1, playerId, MsgType.InGame, true, gameDataType, gameDataObject);
+            SendGameData(Player2, playerId, MsgType.InGame, true, gameDataType, gameDataObject);
         }
 
         public void SendHistoryToPlayers()
@@ -260,6 +250,11 @@ namespace SabberStoneServer.Services
 
         public void SendGameData(UserClient player, MsgType messageType, bool messageState, GameDataType gameDataType, string gameDataObject = "")
         {
+            SendGameData(player, player.PlayerId, messageType, messageState, gameDataType, gameDataObject);
+        }
+
+        public void SendGameData(UserClient player, int playerId, MsgType messageType, bool messageState, GameDataType gameDataType, string gameDataObject = "")
+        {
             player.responseQueue.Enqueue(new GameServerStream()
             {
                 MessageType = messageType,
@@ -267,7 +262,7 @@ namespace SabberStoneServer.Services
                 Message = JsonConvert.SerializeObject(new GameData()
                 {
                     GameId = GameId,
-                    PlayerId = player.PlayerId,
+                    PlayerId = playerId,
                     GameDataType = gameDataType,
                     GameDataObject = gameDataObject
                 })
@@ -278,6 +273,8 @@ namespace SabberStoneServer.Services
         {
             // stop game for both players now!
             Log.Warn($"[_gameId:{GameId}] should be stopped here, isn't implemented!!!");
+
+            //Log.Warn($"Server: {_game.Hash()}");
 
             SendGameData(Player1, MsgType.InGame, true, GameDataType.Result, "");
             SendGameData(Player2, MsgType.InGame, true, GameDataType.Result, "");
@@ -290,76 +287,6 @@ namespace SabberStoneServer.Services
         }
 
         //public PlayerTask ProcessPowerOptionsData(int sendOptionId, int sendOptionMainOption, int sendOptionTarget, int sendOptionPosition, int sendOptionSubOption)
-        public PlayerTask ProcessPowerOptionsData(PowerOption powerOption, int sendOptionTarget, int sendOptionPosition, int sendOptionSubOption)
-        {
 
-            //var allOptions = _game.AllOptionsMap[sendOptionId];
-            //var tasks = allOptions.PlayerTaskList;
-            //var powerOption = allOptions.PowerOptionList[sendOptionMainOption];
-            var optionType = powerOption.OptionType;
-
-            PlayerTask task = null;
-            switch (optionType)
-            {
-                case OptionType.END_TURN:
-                    task = EndTurnTask.Any(_game.CurrentPlayer);
-                    break;
-
-                case OptionType.POWER:
-                    var mainOption = powerOption.MainOption;
-                    var source = _game.IdEntityDic[mainOption.EntityId];
-                    var target = sendOptionTarget > 0 ? (ICharacter)_game.IdEntityDic[sendOptionTarget] : null;
-                    var subObtions = powerOption.SubOptions;
-
-                    if (source.Zone?.Type == Zone.PLAY)
-                    {
-                        task = MinionAttackTask.Any(_game.CurrentPlayer, source, target);
-                    }
-                    else
-                    {
-                        switch (source.Card.Type)
-                        {
-                            case CardType.HERO:
-                                task = target != null
-                                    ? (PlayerTask)HeroAttackTask.Any(_game.CurrentPlayer, target)
-                                    : PlayCardTask.Any(_game.CurrentPlayer, source);
-                                break;
-
-                            case CardType.HERO_POWER:
-                                task = HeroPowerTask.Any(_game.CurrentPlayer, target);
-                                break;
-
-                            default:
-                                task = PlayCardTask.Any(_game.CurrentPlayer, source, target, sendOptionPosition, sendOptionSubOption);
-                                break;
-                        }
-                    }
-                    break;
-
-                case OptionType.PASS:
-                    break;
-
-                default:
-                    throw new NotImplementedException();
-            }
-
-            //Log.Info($"{task?.FullPrint()}");
-
-            return task;
-        }
-
-        private PlayerTask ProcessPowerChoiceData(int PlayerId, ChoiceType choiceType, List<int> entities)
-        {
-            switch (choiceType)
-            {
-                case ChoiceType.MULLIGAN:
-                    return ChooseTask.Mulligan(_game.Player1.PlayerId == PlayerId ? _game.Player1 : _game.Player2.PlayerId == PlayerId ? _game.Player2 : null, entities);
-
-                case ChoiceType.GENERAL:
-                    return ChooseTask.Pick(_game.CurrentPlayer, entities[0]);
-                default:
-                    return null;
-            }
-        }
     }
 }

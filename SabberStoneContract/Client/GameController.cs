@@ -1,7 +1,10 @@
 ﻿using Newtonsoft.Json;
+using SabberStoneContract.Helper;
 using SabberStoneContract.Interface;
 using SabberStoneContract.Model;
+using SabberStoneCore.Config;
 using SabberStoneCore.Kettle;
+using SabberStoneCore.Model;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -31,7 +34,7 @@ namespace SabberStoneContract.Client
 
         public PowerOptions PowerOptions { get; set; }
 
-        //public List<PowerOption> PowerOptionList { get; set; }
+        public Game _game;
 
         public IGameAI GameAI { get; }
 
@@ -72,6 +75,13 @@ namespace SabberStoneContract.Client
         public void SetUserInfos(List<UserInfo> userInfos)
         {
             _userInfos = userInfos;
+
+            var gameConfigInfo = userInfos[0].GameConfigInfo;
+
+            _game = SabberStoneConverter.CreateGame(userInfos[0], userInfos[1], gameConfigInfo);
+
+            _game.StartGame();
+
             CallInitialisation();
         }
 
@@ -109,6 +119,13 @@ namespace SabberStoneContract.Client
             });
         }
 
+        public void SetPowerChoice(int playerId, PowerChoices powerChoices)
+        {
+            var choiceTask = SabberStoneConverter.CreatePlayerTaskChoice(_game, playerId, powerChoices.ChoiceType, powerChoices.Entities);
+
+            _game.Process(choiceTask);
+        }
+
         public void SetPowerOptions(PowerOptions powerOptions)
         {
             PowerOptions = powerOptions;
@@ -125,6 +142,18 @@ namespace SabberStoneContract.Client
             {
                 SendPowerOptionChoice(GameAI.PowerOptions(PowerOptions.PowerOptionList));
             });
+        }
+
+        public void SetPowerOption(int playerId, PowerOptionChoice powerOptionChoice)
+        {
+            var optionTask = SabberStoneConverter.CreatePlayerTaskOption(_game, powerOptionChoice.PowerOption, powerOptionChoice.Target, powerOptionChoice.Position, powerOptionChoice.SubOption);
+
+            _game.Process(optionTask);
+        }
+
+        public void SetResult()
+        {
+            //Console.WriteLine($"{MyUserInfo.AccountName}: {_game.Hash()}");
         }
 
         public void SendInvitationReply(bool accept)
@@ -148,7 +177,7 @@ namespace SabberStoneContract.Client
                     {
                         GameId = GameId,
                         PlayerId = PlayerId,
-                        GameDataType = GameDataType.PowerChoices,
+                        GameDataType = GameDataType.PowerChoice,
                         GameDataObject = JsonConvert.SerializeObject(powerChoices)
                     }));
         }
@@ -162,7 +191,7 @@ namespace SabberStoneContract.Client
                     {
                         GameId = GameId,
                         PlayerId = PlayerId,
-                        GameDataType = GameDataType.PowerOptions,
+                        GameDataType = GameDataType.PowerOption,
                         GameDataObject = JsonConvert.SerializeObject(powerOptionChoice)
                     }));
         }

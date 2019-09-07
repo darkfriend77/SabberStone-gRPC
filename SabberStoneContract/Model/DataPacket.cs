@@ -53,7 +53,9 @@ namespace SabberStoneContract.Model
         None,
         PowerHistory,
         PowerOptions,
+        PowerOption,
         PowerChoices,
+        PowerChoice,
         Concede,
         Result,
         Initialisation

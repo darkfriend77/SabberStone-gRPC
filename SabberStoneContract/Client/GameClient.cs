@@ -272,15 +272,23 @@ namespace SabberStoneContract.Core
 
                         case GameDataType.PowerChoices:
                             _gameController.SetPowerChoices(JsonConvert.DeserializeObject<PowerChoices>(gameData.GameDataObject));
+                            break;
 
+                        case GameDataType.PowerChoice:
+                            _gameController.SetPowerChoice(gameData.PlayerId, JsonConvert.DeserializeObject<PowerChoices>(gameData.GameDataObject));
                             break;
 
                         case GameDataType.PowerOptions:
                             _gameController.SetPowerOptions(JsonConvert.DeserializeObject<PowerOptions>(gameData.GameDataObject));
                             break;
 
+                        case GameDataType.PowerOption:
+                            _gameController.SetPowerOption(gameData.PlayerId, JsonConvert.DeserializeObject<PowerOptionChoice>(gameData.GameDataObject));
+                            break;
+
                         case GameDataType.Result:
                             GameClientState = GameClientState.Registred;
+                            _gameController.SetResult();
                             break;
                     }
                     break;
