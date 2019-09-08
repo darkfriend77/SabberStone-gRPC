@@ -8,6 +8,8 @@ namespace SabberStoneContract.Interface
 {
     public interface IGameAI
     {
+        void InitialiseAgent();
+        PlayerTask GetMove(Game game);
         PowerOptionChoice PowerOptions(Game game, List<PowerOption> powerOptionList);
         PowerChoices PowerChoices(Game game, PowerChoices powerChoices);
     }

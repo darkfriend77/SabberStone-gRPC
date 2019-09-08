@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Grpc.Core;
 using log4net;
 using Newtonsoft.Json;
+using SabberStoneContract.Core;
 using SabberStoneContract.Model;
 using SabberStoneCore.Model;
 using SabberStoneServer.Core;

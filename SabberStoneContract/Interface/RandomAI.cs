@@ -25,6 +25,16 @@ namespace SabberStoneContract.Interface
             return new PowerChoices() { ChoiceType = powerChoices.ChoiceType, Entities = new List<int>() { powerChoices.Entities[powerChoicesId] } };
         }
 
+        public void InitialiseAgent()
+        {
+            throw new NotImplementedException();
+        }
+
+        public PlayerTask GetMove(Game game)
+        {
+            throw new NotImplementedException();
+        }
+
         public PowerOptionChoice PowerOptions(Game game, List<PowerOption> powerOptionList)
         {
             var powerOptionId = _random.Next(powerOptionList.Count);

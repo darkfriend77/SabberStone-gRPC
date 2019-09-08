@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using SabberStoneContract.Core;
 
 namespace SabberStoneServer.Services
 {
@@ -113,7 +114,7 @@ namespace SabberStoneServer.Services
                     matchGame.InvitationReply(messageState, gameData);
                     break;
 
-                case MsgType.InGame: 
+                case MsgType.InGame:
                     matchGame.ProcessGameData(gameData);
                     break;
             }

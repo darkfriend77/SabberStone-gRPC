@@ -8,11 +8,12 @@ using SabberStoneCore.Kettle;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
-using static GameServerService;
+using static SabberStoneContract.Core.GameServerService;
 
 namespace SabberStoneContract.Core
 {
@@ -78,7 +79,8 @@ namespace SabberStoneContract.Core
             try
             {
                 int timeoutSeconds = 5;
-                var serverReply = _client.Ping(new ServerRequest { Message = "Ping", }, deadline: DateTime.UtcNow.AddSeconds(timeoutSeconds));
+                var serverReply = _client.Ping(new ServerRequest { Message = "Ping", },
+				deadline: DateTime.UtcNow.AddSeconds(timeoutSeconds));
                 if (serverReply.RequestState)
                 {
                     GameClientState = GameClientState.Connected;
@@ -119,7 +121,7 @@ namespace SabberStoneContract.Core
 
             GameServerChannelAsync();
 
-            GameClientState = GameClientState.Registred;
+            GameClientState = GameClientState.Registered;
         }
 
         public void MatchGame()
@@ -130,7 +132,8 @@ namespace SabberStoneContract.Core
                 return;
             }
 
-            var matchGameReply = _client.MatchGame(new MatchGameRequest { GameId = _gameController.GameId }, new Metadata { new Metadata.Entry("token", _sessionToken) });
+            var matchGameReply = _client.MatchGame(new MatchGameRequest { GameId = _gameController.GameId },
+			new Metadata { new Metadata.Entry("token", _sessionToken) });
 
             if (!matchGameReply.RequestState)
             {
@@ -141,7 +144,9 @@ namespace SabberStoneContract.Core
 
         private async void GameServerChannelAsync()
         {
-            using (var call = _client.GameServerChannel(headers: new Metadata { new Metadata.Entry("token", _sessionToken) }, cancellationToken: _cancellationTokenSource.Token))
+            using (var call = _client.GameServerChannel(
+			headers: new Metadata { new Metadata.Entry("token", _sessionToken) },
+			cancellationToken: _cancellationTokenSource.Token))
             {
                 var requestStreamWriterTask = new Task(async () =>
                 {
@@ -200,7 +205,9 @@ namespace SabberStoneContract.Core
             try
             {
                 int timeoutSeconds = 5;
-                var serverReply = _client.Disconnect(new ServerRequest(), new Metadata { new Metadata.Entry("token", _sessionToken ?? string.Empty) }, DateTime.UtcNow.AddSeconds(timeoutSeconds));
+                var serverReply = _client.Disconnect(new ServerRequest(),
+				new Metadata { new Metadata.Entry("token", _sessionToken ?? string.Empty) },
+				DateTime.UtcNow.AddSeconds(timeoutSeconds));
                 if (serverReply.RequestState)
                 {
                     _cancellationTokenSource.Cancel();
@@ -261,33 +268,41 @@ namespace SabberStoneContract.Core
                     switch (gameData.GameDataType)
                     {
                         case GameDataType.Initialisation:
-                            _gameController.SetUserInfos(JsonConvert.DeserializeObject<List<UserInfo>>(gameData.GameDataObject));
+                            _gameController.SetUserInfos(
+							JsonConvert.DeserializeObject<List<UserInfo>>(gameData.GameDataObject));
                             GameClientState = GameClientState.InGame;
                             break;
 
                         case GameDataType.PowerHistory:
-                            _gameController.SetPowerHistory(JsonConvert.DeserializeObject<List<IPowerHistoryEntry>>(gameData.GameDataObject, new PowerHistoryConverter()));
+                            _gameController.SetPowerHistory(
+							JsonConvert.DeserializeObject<List<IPowerHistoryEntry>>(gameData.GameDataObject,
+							new PowerHistoryConverter()));
                             break;
 
                         case GameDataType.PowerChoices:
-                            _gameController.SetPowerChoices(JsonConvert.DeserializeObject<PowerChoices>(gameData.GameDataObject));
+                            _gameController.SetPowerChoices(
+							JsonConvert.DeserializeObject<PowerChoices>(gameData.GameDataObject));
                             break;
 
                         case GameDataType.PowerChoice:
-                            _gameController.SetPowerChoice(gameData.PlayerId, JsonConvert.DeserializeObject<PowerChoices>(gameData.GameDataObject));
+                            _gameController.SetPowerChoice(gameData.PlayerId,
+							JsonConvert.DeserializeObject<PowerChoices>(gameData.GameDataObject));
                             break;
 
                         case GameDataType.PowerOptions:
-                            _gameController.SetPowerOptions(JsonConvert.DeserializeObject<PowerOptions>(gameData.GameDataObject));
+                            _gameController.SetPowerOptions(
+							JsonConvert.DeserializeObject<PowerOptions>(gameData.GameDataObject));
                             break;
 
                         case GameDataType.PowerOption:
-                            _gameController.SetPowerOption(gameData.PlayerId, JsonConvert.DeserializeObject<PowerOptionChoice>(gameData.GameDataObject));
+                            _gameController.SetPowerOption(gameData.PlayerId,
+							JsonConvert.DeserializeObject<PowerOptionChoice>(gameData.GameDataObject));
                             break;
 
                         case GameDataType.Result:
-                            GameClientState = GameClientState.Registred;
+                            GameClientState = GameClientState.Registered;
                             _gameController.SetResult();
+                            OnMatchFinished();
                             break;
                     }
                     break;
@@ -296,7 +311,7 @@ namespace SabberStoneContract.Core
 
         public void Queue(GameType gameType = GameType.Normal, string deckData = "")
         {
-            if (GameClientState != GameClientState.Registred)
+            if (GameClientState != GameClientState.Registered)
             {
                 //Log.Warn("Client isn't registred.");
                 return;
@@ -308,7 +323,8 @@ namespace SabberStoneContract.Core
                     GameType = gameType,
                     DeckData = deckData
                 },
-                new Metadata {
+                new Metadata
+				{
                     new Metadata.Entry("token", _sessionToken)
             });
 
@@ -331,11 +347,11 @@ namespace SabberStoneContract.Core
 
         public async virtual void CallInvitation()
         {
-            await Task.Run(() =>
-            {
-                _gameController.SendInvitationReply(true);
-            });
+            await Task.Run(() => { _gameController.SendInvitationReply(true); });
         }
 
+        public virtual void OnMatchFinished()
+        {
+        }
     }
 }

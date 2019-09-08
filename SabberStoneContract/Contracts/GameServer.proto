@@ -1,4 +1,5 @@
 ﻿syntax = "proto3";
+option csharp_namespace = "SabberStoneContract.Core";
 
 // The greeting service definition.
 service GameServerService {

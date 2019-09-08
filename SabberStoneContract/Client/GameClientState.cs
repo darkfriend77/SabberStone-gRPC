@@ -4,7 +4,7 @@
     {
         None,
         Connected,
-        Registred,
+        Registered,
         Queued,
         Invited,
         InGame
