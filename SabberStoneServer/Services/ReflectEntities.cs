@@ -4,10 +4,18 @@ using System.Collections.Generic;
 using System.Text;
 using Google.Protobuf.Collections;
 using SabberStoneContract.Model;
+using SabberStoneContract.Core;
 using SabberStoneCore.Model.Entities;
 using SabberStoneCore.Model.Zones;
-
-using static Controller;
+using BoardZone = SabberStoneContract.Core.BoardZone;
+using Controller = SabberStoneContract.Core.Controller;
+using DeckZone = SabberStoneContract.Core.DeckZone;
+using HandZone = SabberStoneContract.Core.HandZone;
+using Hero = SabberStoneContract.Core.Hero;
+using HeroPower = SabberStoneContract.Core.HeroPower;
+using Minion = SabberStoneContract.Core.Minion;
+using SecretZone = SabberStoneContract.Core.SecretZone;
+using Weapon = SabberStoneContract.Core.Weapon;
 
 namespace SabberStoneServer.Services
 {
@@ -37,7 +45,7 @@ namespace SabberStoneServer.Services
                 HandZone = GetHandZone(controller.HandZone),
                 SecretZone = GetSecretZone(controller.SecretZone),
                 DeckZone = GetDeckZone(controller.DeckZone),
-                PlayState = (Types.PlayState)controller.PlayState,
+                PlayState = (Controller.Types.PlayState)controller.PlayState,
                 BaseMana = controller.BaseMana,
                 RemainingMana = controller.RemainingMana,
                 OverloadLocked = controller.OverloadLocked,

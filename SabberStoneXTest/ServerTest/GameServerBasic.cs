@@ -4,6 +4,7 @@ using SabberStoneServer.Core;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
+using SabberStoneContract.Core;
 
 namespace SabberStoneXTest.ServerTest
 {
