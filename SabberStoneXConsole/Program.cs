@@ -18,8 +18,8 @@ namespace SabberStoneXConsole
         static void Main(string[] args)
         {
 
-            //RunServerWith(2);
-            FullTest();
+            RunServerWith(1);
+            //FullTest();
             //RunServer();
 
             Console.ReadKey();

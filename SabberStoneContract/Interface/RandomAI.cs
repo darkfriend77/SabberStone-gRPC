@@ -5,6 +5,8 @@ using System.Reflection;
 using SabberStoneContract.Interface;
 using SabberStoneContract.Model;
 using SabberStoneCore.Kettle;
+using SabberStoneCore.Model;
+using SabberStoneCore.Tasks.PlayerTasks;
 
 namespace SabberStoneContract.Interface
 {
@@ -17,13 +19,13 @@ namespace SabberStoneContract.Interface
             _random = new Random();
         }
 
-        public PowerChoices PowerChoices(PowerChoices powerChoices)
+        public PowerChoices PowerChoices(Game game, PowerChoices powerChoices)
         {
             var powerChoicesId = _random.Next(powerChoices.Entities.Count);
             return new PowerChoices() { ChoiceType = powerChoices.ChoiceType, Entities = new List<int>() { powerChoices.Entities[powerChoicesId] } };
         }
 
-        public PowerOptionChoice PowerOptions(List<PowerOption> powerOptionList)
+        public PowerOptionChoice PowerOptions(Game game, List<PowerOption> powerOptionList)
         {
             var powerOptionId = _random.Next(powerOptionList.Count);
             var powerOption = powerOptionList.ElementAt(powerOptionId);

@@ -145,8 +145,8 @@ namespace SabberStoneServer.Services
             switch (gameData.GameDataType)
             {
                 case GameDataType.PowerOption:
-                    var powerOptionChoice = JsonConvert.DeserializeObject<PowerOptionChoice>(gameData.GameDataObject);
-                    var optionTask = SabberStoneConverter.CreatePlayerTaskOption(_game, powerOptionChoice.PowerOption, powerOptionChoice.Target, powerOptionChoice.Position, powerOptionChoice.SubOption);
+                    PowerOptionChoice powerOptionChoice = JsonConvert.DeserializeObject<PowerOptionChoice>(gameData.GameDataObject);
+                    PlayerTask optionTask = SabberStoneConverter.CreatePlayerTaskOption(_game, powerOptionChoice.PowerOption, powerOptionChoice.Target, powerOptionChoice.Position, powerOptionChoice.SubOption);
 
                     _game.Process(optionTask);
 

@@ -20,7 +20,7 @@ namespace SabberStoneContract.Core
     {
         //private static readonly ILog Log = Logger.Instance.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private readonly int _port;
+        private readonly string _url;
 
         private readonly string _target;
 
@@ -52,14 +52,13 @@ namespace SabberStoneContract.Core
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="port"></param>
         /// <param name="sabberStoneAI"></param>
-        public GameClient(string targetIp, int port, GameController gameController)
+        public GameClient(string ip, int port, GameController gameController)
         {
-            _port = port;
-            _target = $"{targetIp}:{_port}";
+            _url = $"{ip}:{port}";
 
             _cancellationTokenSource = new CancellationTokenSource();
 
@@ -73,7 +72,7 @@ namespace SabberStoneContract.Core
 
         public void Connect()
         {
-            _channel = new Channel(_target, ChannelCredentials.Insecure);
+            _channel = new Channel(_url, ChannelCredentials.Insecure);
             _client = new GameServerServiceClient(_channel);
 
             try
@@ -91,7 +90,7 @@ namespace SabberStoneContract.Core
                 if (exception.StatusCode != StatusCode.Unavailable)
                 {
                     //Log.Error(exception.ToString());
-                    throw exception;
+                    throw;
                 }
             }
 
@@ -118,7 +117,7 @@ namespace SabberStoneContract.Core
             _sessionId = authReply.SessionId;
             _sessionToken = authReply.SessionToken;
 
-            GameServerChannel();
+            GameServerChannelAsync();
 
             GameClientState = GameClientState.Registred;
         }
@@ -140,7 +139,7 @@ namespace SabberStoneContract.Core
             }
         }
 
-        public async void GameServerChannel()
+        private async void GameServerChannelAsync()
         {
             using (var call = _client.GameServerChannel(headers: new Metadata { new Metadata.Entry("token", _sessionToken) }, cancellationToken: _cancellationTokenSource.Token))
             {
@@ -303,7 +302,7 @@ namespace SabberStoneContract.Core
                 return;
             }
 
-            var queueReply = _client.GameQueue(
+            ServerReply queueReply = _client.GameQueue(
                 new QueueRequest
                 {
                     GameType = gameType,
