@@ -19,8 +19,10 @@ namespace SabberStoneXConsole
         {
 
             //RunServerWith(2);
-            FullTest();
+            //FullTest();
             //RunServer();
+
+            AIClientTester.Test2Client();
 
             Console.ReadKey();
         }
@@ -142,7 +144,7 @@ namespace SabberStoneXConsole
                     Register();
                     break;
 
-                case GameClientState.Registred:
+                case GameClientState.Registered:
                     if (oldState != GameClientState.InGame)
                     {
                         Thread.Sleep(200);

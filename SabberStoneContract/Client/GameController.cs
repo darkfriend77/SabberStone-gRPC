@@ -156,15 +156,15 @@ namespace SabberStoneContract.Client
         internal void SetPowerOption(int playerId, PowerOptionChoice powerOptionChoice)
         {
             PlayerTask optionTask = SabberStoneConverter.CreatePlayerTaskOption(_originalGame, powerOptionChoice.PowerOption, powerOptionChoice.Target, powerOptionChoice.Position, powerOptionChoice.SubOption);
-
-            //Logger?.WriteLine(SimplePrinter.ActionPrint(optionTask));
+            
+            Console.WriteLine(SimplePrinter.ActionPrint(optionTask));
 
             _originalGame.Process(optionTask);
 
             _poGame = CreatePartiallyObservableGame(_originalGame);
 
             //if (optionTask.PlayerTaskType == SabberStoneCore.Tasks.PlayerTasks.PlayerTaskType.END_TURN)
-            //    Logger?.WriteLine(SimplePrinter.PrintGame(_poGame));
+            Console.WriteLine(SimplePrinter.PrintGame(_poGame));
         }
 
         internal void SetResult()

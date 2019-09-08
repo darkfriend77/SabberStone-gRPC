@@ -230,6 +230,7 @@ namespace SabberStoneServer.Services
 
         public override Task<ServerReply> GameQueue(QueueRequest request, ServerCallContext context)
         {
+            // Check auth
             if (!TokenAuthentification(context.RequestHeaders, out string clientTokenValue))
             {
                 return Task.FromResult(new ServerReply
@@ -239,6 +240,7 @@ namespace SabberStoneServer.Services
                 });
             }
 
+            // Check the client have been registered
             if (!_registredUsers.TryGetValue(clientTokenValue, out UserClient userDataInfo))
             {
                 Log.Info($"couldn't get user data info!");
@@ -249,6 +251,7 @@ namespace SabberStoneServer.Services
                 });
             }
 
+            // Check channel status
             if (userDataInfo.ResponseStreamWriterTask.Status != TaskStatus.Running)
             {
                 Log.Info($"User hasn't established a channel initialisation!");
