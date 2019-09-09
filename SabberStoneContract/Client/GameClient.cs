@@ -41,6 +41,9 @@ namespace SabberStoneContract.Core
 
         private GameController _gameController;
 
+        public string AccountName { get; private set; }
+        private string _password;
+
         public GameClientState GameClientState
         {
             get => _gameClientState;
@@ -122,6 +125,9 @@ namespace SabberStoneContract.Core
             GameServerChannelAsync();
 
             GameClientState = GameClientState.Registered;
+
+            AccountName = accountName;
+            _password = accountPsw;
         }
 
         public void MatchGame()

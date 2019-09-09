@@ -17,6 +17,9 @@ namespace SabberStoneServer
             var sabberStoneServer = new GameServer();
             sabberStoneServer.Start();
 
+            var matchMaker = sabberStoneServer.GetMatchMakerService();
+            matchMaker.Start(1);
+
             Log.Info("Press any key to stop the server...");
             Console.ReadKey();
 

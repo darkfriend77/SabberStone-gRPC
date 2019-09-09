@@ -180,6 +180,7 @@ namespace SabberStoneServer.Services
                     if (userDataInfo.responseQueue.TryDequeue(out GameServerStream gameServerStream))
                     {
                         await responseStream.WriteAsync(gameServerStream);
+                        Log.Debug($"Sends [{gameServerStream.MessageType}]");
                     }
                     else
                     {
@@ -308,6 +309,4 @@ namespace SabberStoneServer.Services
         }
 
     }
-
-
 }

@@ -27,7 +27,12 @@ namespace SabberStoneContract.Interface
 
         public void InitialiseAgent()
         {
-            throw new NotImplementedException();
+            
+        }
+
+        public void InitialiseGame()
+        {
+            
         }
 
         public PlayerTask GetMove(Game game)

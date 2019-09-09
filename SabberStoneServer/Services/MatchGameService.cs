@@ -135,7 +135,7 @@ namespace SabberStoneServer.Services
 
         internal void ProcessGameData(GameData gameData)
         {
-            var userInfoData = UserById(gameData.PlayerId);
+            UserClient userInfoData = UserById(gameData.PlayerId);
 
             if (userInfoData == null)
             {

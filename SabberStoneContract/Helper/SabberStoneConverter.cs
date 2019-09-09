@@ -87,7 +87,7 @@ namespace SabberStoneContract.Helper
             return task;
         }
 
-        public static PlayerTask CreatePlayerTaskChoice(Game game, int PlayerId, ChoiceType choiceType, List<int> entities)
+        public static ChooseTask CreatePlayerTaskChoice(Game game, int PlayerId, ChoiceType choiceType, List<int> entities)
         {
             switch (choiceType)
             {
@@ -98,6 +98,71 @@ namespace SabberStoneContract.Helper
                     return ChooseTask.Pick(game.CurrentPlayer, entities[0]);
                 default:
                     return null;
+            }
+        }
+
+        public static PowerOptionChoice CreatePowerOption(PlayerTask playerTask)
+        {
+            switch (playerTask)
+            {
+                case EndTurnTask endTurnTask:
+                    return new PowerOptionChoice {PowerOption = new PowerOption {OptionType = OptionType.END_TURN}};
+                case HeroAttackTask heroAttackTask:
+                    return new PowerOptionChoice
+                    {
+                        PowerOption = new PowerOption
+                        {
+                            OptionType = OptionType.POWER,
+                            MainOption = new PowerSubOption
+                            {
+                                EntityId = playerTask.Controller.Hero.Id
+                            }
+                        },
+                        Target = playerTask.Target?.Id ?? 0
+                    };
+                case HeroPowerTask heroPowerTask:
+                    return new PowerOptionChoice
+                    {
+                        PowerOption = new PowerOption
+                        {
+                            OptionType = OptionType.POWER,
+                            MainOption = new PowerSubOption
+                            {
+                                EntityId = playerTask.Controller.Hero.HeroPower.Id
+                            }
+                        },
+                        Target = playerTask.Target?.Id ?? 0
+                    };
+                case MinionAttackTask minionAttackTask:
+                    return new PowerOptionChoice
+                    {
+                        PowerOption = new PowerOption
+                        {
+                            OptionType = OptionType.POWER,
+                            MainOption = new PowerSubOption
+                            {
+                                EntityId = playerTask.Source.Id
+                            }
+                        },
+                        Target = playerTask.Target.Id
+                    };
+                case PlayCardTask playCardTask:
+                    return new PowerOptionChoice
+                    {
+                        PowerOption = new PowerOption
+                        {
+                            OptionType = OptionType.POWER,
+                            MainOption = new PowerSubOption
+                            {
+                                EntityId = playerTask.Source.Id
+                            }
+                        },
+                        Target = playerTask.Target?.Id ?? 0,
+                        Position = playCardTask.ZonePosition,
+                        SubOption = playCardTask.ChooseOne
+                    };
+                default:
+                    throw new NotImplementedException();
             }
         }
     }
