@@ -228,6 +228,84 @@ namespace SabberStoneServer.Services
             }
         }
 
+        public override Task<ServerReply> VisitAccount(VisitAccountRequest request, ServerCallContext context)
+        {
+            if (!TokenAuthentification(context.RequestHeaders, out string clientTokenValue))
+            {
+                return Task.FromResult(new ServerReply
+                {
+                    RequestState = false,
+                    RequestMessage = string.Empty
+                });
+            }
+
+            if (!_registredUsers.TryGetValue(clientTokenValue, out UserClient userDataInfo))
+            {
+                Log.Info($"couldn't get user data info!");
+                return Task.FromResult(new ServerReply
+                {
+                    RequestState = false,
+                    RequestMessage = string.Empty
+                });
+            }
+
+            if (userDataInfo.ResponseStreamWriterTask.Status != TaskStatus.Running)
+            {
+                Log.Info($"User hasn't established a channel initialisation!");
+                return Task.FromResult(new ServerReply
+                {
+                    RequestState = false,
+                    RequestMessage = string.Empty
+                });
+            }
+
+            if (!request.Join && userDataInfo.VisitorClient != null)
+            {
+                Log.Info($"Not visiting anymore {userDataInfo.VisitorClient.AccountName}!");
+                userDataInfo.VisitorClient.Visitors.Remove(userDataInfo);
+                userDataInfo.VisitorClient = null;
+                return Task.FromResult(new ServerReply
+                {
+                    RequestState = true,
+                    RequestMessage = string.Empty
+                });
+            }
+
+            var accountToVisit = RegistredUsers.FirstOrDefault(p => p.AccountName == request.AccountName);
+
+            if (accountToVisit == null)
+            {
+                Log.Info($"Account to visit doesn't exist!");
+                return Task.FromResult(new ServerReply
+                {
+                    RequestState = false,
+                    RequestMessage = string.Empty
+                });
+            }
+
+            if (accountToVisit.PlayerState != PlayerState.None)
+            {
+                Log.Info($"Account to visit is already occupied {accountToVisit.PlayerState}!");
+                return Task.FromResult(new ServerReply
+                {
+                    RequestState = false,
+                    RequestMessage = string.Empty
+                });
+            }
+
+            Log.Info($"{userDataInfo.AccountName} just joined {accountToVisit.AccountName} as visitor!");
+
+            userDataInfo.VisitorClient = accountToVisit;
+
+            accountToVisit.Visitors.Add(userDataInfo);
+
+            return Task.FromResult(new ServerReply
+            {
+                RequestState = true,
+                RequestMessage = string.Empty
+            });
+        }
+
         public override Task<ServerReply> GameQueue(QueueRequest request, ServerCallContext context)
         {
             if (!TokenAuthentification(context.RequestHeaders, out string clientTokenValue))
@@ -300,10 +378,15 @@ namespace SabberStoneServer.Services
 
         public CancellationTokenSource CancellationTokenSource;
 
+        public UserClient VisitorClient { get; set; }
+
+        public List<UserClient> Visitors;
+
         public UserClient()
         {
             CancellationTokenSource = new CancellationTokenSource();
             responseQueue = new ConcurrentQueue<GameServerStream>();
+            Visitors = new List<UserClient>();
         }
 
     }

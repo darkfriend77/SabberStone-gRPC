@@ -19,6 +19,10 @@ namespace SabberStoneXConsole
             //FullTest();
             //RunServer();
 
+            Thread.Sleep(1000);
+
+            var visitorClient = CreateGameClientTask("127.0.0.1", 50051, $"TestClient1", "", new RandomAI());
+
             Console.ReadKey();
         }
 

@@ -306,6 +306,26 @@ namespace SabberStoneContract.Core
             }
         }
 
+        public void VisitAccount(bool join, string accountName)
+        {
+            if (GameClientState != GameClientState.Registered)
+            {
+                //Log.Warn("Client isn't registred.");
+                return;
+            }
+
+            var serverReply = _client.VisitAccount(new VisitAccountRequest { Join = join, AccountName = accountName },
+                new Metadata { new Metadata.Entry("token", _sessionToken) });
+
+            if (!serverReply.RequestState)
+            {
+                //Log.Warn("Bad MatchGameRequest.");
+                return;
+            }
+
+            GameClientState = GameClientState.Placed;
+        }
+
         public void Queue(GameType gameType = GameType.Normal, string deckData = "")
         {
             if (GameClientState != GameClientState.Registered)

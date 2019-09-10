@@ -12,6 +12,8 @@ service GameServerService {
 
 	rpc GameQueue (QueueRequest) returns (ServerReply) {}
 
+	rpc VisitAccount (VisitAccountRequest) returns (ServerReply) {}
+
 	rpc MatchGame(MatchGameRequest) returns (MatchGameReply) {}
 
 	rpc GameServerChannel (stream GameServerStream) returns (stream GameServerStream) {}
@@ -59,6 +61,11 @@ message QueueRequest {
 	GameType gameType = 1;
 	string deckData = 2;
 }
+
+message VisitAccountRequest {
+	bool join = 1;
+	string accountName = 2;
+} 
 
 message MatchGameRequest {
 	int32 gameId = 1;
