@@ -2,15 +2,12 @@
 using SabberStoneContract.Helper;
 using SabberStoneContract.Interface;
 using SabberStoneContract.Model;
-using SabberStoneCore.Config;
 using SabberStoneCore.Kettle;
 using SabberStoneCore.Model;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using SabberStoneContract.Core;
 using SabberStoneCore.Enums;
@@ -36,10 +33,7 @@ namespace SabberStoneContract.Client
         public int PlayerId { get; set; }
 
         public UserInfo MyUserInfo => _userInfos.FirstOrDefault(p => p.PlayerId == PlayerId);
-
         public UserInfo OpUserInfo => _userInfos.FirstOrDefault(p => p.PlayerId != PlayerId);
-
-
 
         /// <summary>
         ///
@@ -156,13 +150,9 @@ namespace SabberStoneContract.Client
         {
             PlayerTask optionTask = SabberStoneConverter.CreatePlayerTaskOption(_originalGame, powerOptionChoice.PowerOption, powerOptionChoice.Target, powerOptionChoice.Position, powerOptionChoice.SubOption);
 
-
-
             _originalGame.Process(optionTask);
 
             _poGame = CreatePartiallyObservableGame(_originalGame);
-
-
 
         }
 
@@ -210,6 +200,7 @@ namespace SabberStoneContract.Client
                         GameDataObject = JsonConvert.SerializeObject(powerOptionChoice)
                     }));
         }
+
         private static Game CreatePartiallyObservableGame(Game fullGame)
         {
             Game game = fullGame.Clone();

@@ -1,12 +1,5 @@
-﻿using SabberStoneCore.Model;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using Google.Protobuf.Collections;
-using SabberStoneContract.Model;
-using SabberStoneContract.Core;
+﻿using SabberStoneContract.Core;
 using SabberStoneCore.Model.Entities;
-using SabberStoneCore.Model.Zones;
 using BoardZone = SabberStoneContract.Core.BoardZone;
 using Controller = SabberStoneContract.Core.Controller;
 using DeckZone = SabberStoneContract.Core.DeckZone;

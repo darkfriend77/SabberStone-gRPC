@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,7 +10,6 @@ using log4net;
 using Newtonsoft.Json;
 using SabberStoneContract.Core;
 using SabberStoneContract.Model;
-using SabberStoneCore.Model;
 using SabberStoneServer.Core;
 
 namespace SabberStoneServer.Services
@@ -180,6 +178,7 @@ namespace SabberStoneServer.Services
                     if (userDataInfo.responseQueue.TryDequeue(out GameServerStream gameServerStream))
                     {
                         await responseStream.WriteAsync(gameServerStream);
+                        Log.Debug($"Sends [{gameServerStream.MessageType}]");
                     }
                     else
                     {

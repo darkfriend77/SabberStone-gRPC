@@ -2,20 +2,14 @@
 using Newtonsoft.Json;
 using SabberStoneContract.Helper;
 using SabberStoneContract.Model;
-using SabberStoneCore.Config;
 using SabberStoneCore.Enums;
 using SabberStoneCore.Kettle;
 using SabberStoneCore.Model;
-using SabberStoneCore.Model.Entities;
 using SabberStoneCore.Tasks.PlayerTasks;
 using SabberStoneServer.Core;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading;
 using SabberStoneContract.Core;
 
 namespace SabberStoneServer.Services
@@ -135,7 +129,7 @@ namespace SabberStoneServer.Services
 
         internal void ProcessGameData(GameData gameData)
         {
-            var userInfoData = UserById(gameData.PlayerId);
+            UserClient userInfoData = UserById(gameData.PlayerId);
 
             if (userInfoData == null)
             {

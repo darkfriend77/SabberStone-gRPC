@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using SabberStoneContract.Interface;
 using SabberStoneContract.Model;
 using SabberStoneCore.Kettle;
 using SabberStoneCore.Model;
@@ -27,7 +25,12 @@ namespace SabberStoneContract.Interface
 
         public void InitialiseAgent()
         {
-            throw new NotImplementedException();
+
+        }
+
+        public void InitialiseGame()
+        {
+
         }
 
         public PlayerTask GetMove(Game game)

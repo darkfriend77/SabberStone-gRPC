@@ -1,6 +1,4 @@
-﻿
-using SabberStoneClient;
-using SabberStoneContract;
+﻿using SabberStoneContract;
 using SabberStoneContract.Client;
 using SabberStoneContract.Core;
 using SabberStoneContract.Interface;
@@ -9,7 +7,6 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace SabberStoneXConsole
 {
