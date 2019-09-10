@@ -15,15 +15,38 @@ namespace SabberStoneXConsole
         static void Main(string[] args)
         {
 
-            RunServerWith(1);
+            //RunServerWith(1);
             //FullTest();
             //RunServer();
+            VisitorTest();
+
+
+            Console.ReadKey();
+        }
+
+        private static void VisitorTest()
+        {
+
+            RunServer();
+
+            GameClient testClient = new VisitorClient("TestClient1", "127.0.0.1", 50051, new GameController(new RandomAI()));
+            testClient.Connect();
 
             Thread.Sleep(1000);
 
-            var visitorClient = CreateGameClientTask("127.0.0.1", 50051, $"TestClient1", "", new RandomAI());
+            GameClient client = new VisitorClient("VisitorClient1", "127.0.0.1", 50051, new GameController(new RandomAI()));
+            client.Connect();
 
-            Console.ReadKey();
+            Thread.Sleep(1000);
+
+           client.VisitAccount(true, "TestClient1");
+
+            Thread.Sleep(1000);
+
+            client.VisitAccount(false, "");
+
+            Thread.Sleep(1000);
+
         }
 
         public static void RunServer()

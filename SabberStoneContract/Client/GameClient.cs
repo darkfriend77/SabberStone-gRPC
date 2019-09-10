@@ -308,7 +308,7 @@ namespace SabberStoneContract.Core
 
         public void VisitAccount(bool join, string accountName)
         {
-            if (GameClientState != GameClientState.Registered)
+            if (join && GameClientState != GameClientState.Registered)
             {
                 //Log.Warn("Client isn't registred.");
                 return;

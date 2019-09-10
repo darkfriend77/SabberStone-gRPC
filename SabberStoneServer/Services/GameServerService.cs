@@ -293,11 +293,11 @@ namespace SabberStoneServer.Services
                 });
             }
 
-            Log.Info($"{userDataInfo.AccountName} just joined {accountToVisit.AccountName} as visitor!");
-
             userDataInfo.VisitorClient = accountToVisit;
-
             accountToVisit.Visitors.Add(userDataInfo);
+
+            Log.Info($"{userDataInfo.AccountName} just joined {userDataInfo.VisitorClient} as visitor[{userDataInfo.VisitorClient.Visitors.Count}]!");
+
 
             return Task.FromResult(new ServerReply
             {
