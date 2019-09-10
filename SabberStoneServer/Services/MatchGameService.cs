@@ -115,7 +115,7 @@ namespace SabberStoneServer.Services
                 Player1.GameConfigInfo = gameConfigInfo;
                 Player2.GameConfigInfo = gameConfigInfo;
 
-                // we send over opponend user info which is reduced to open available informations
+                // we send over opponend user info which is currently not reduced and has all available informations
                 SendGameData(Player1, MsgType.InGame, true, GameDataType.Initialisation,
                     JsonConvert.SerializeObject(new List<UserInfo> { Player1, Player2 }));
 
@@ -250,7 +250,7 @@ namespace SabberStoneServer.Services
 
         public void SendGameData(UserClient player, int playerId, MsgType messageType, bool messageState, GameDataType gameDataType, string gameDataObject = "")
         {
-            player.responseQueue.Enqueue(new GameServerStream()
+            var gameServerStream = new GameServerStream()
             {
                 MessageType = messageType,
                 MessageState = messageState,
@@ -261,7 +261,9 @@ namespace SabberStoneServer.Services
                     GameDataType = gameDataType,
                     GameDataObject = gameDataObject
                 })
-            });
+            };
+            player.responseQueue.Enqueue(gameServerStream);
+            player.Visitors.ForEach(p => p.responseQueue.Enqueue(gameServerStream));
         }
 
         public void Stop()
