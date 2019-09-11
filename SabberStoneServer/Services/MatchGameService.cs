@@ -77,7 +77,7 @@ namespace SabberStoneServer.Services
             SendGameData(Player2, MsgType.Invitation, true, GameDataType.None);
         }
 
-        public void Start(GameConfigInfo gameConfigInfo)
+        private void Start(GameConfigInfo gameConfigInfo)
         {
             Log.Info($"[_gameId:{GameId}] Game creation is happening in a few seconds!!!");
 
@@ -115,12 +115,14 @@ namespace SabberStoneServer.Services
                 Player1.GameConfigInfo = gameConfigInfo;
                 Player2.GameConfigInfo = gameConfigInfo;
 
+                //var serializerSetting = new JsonSerializerSettings { ContractResolver = new TypeOnlyContractResolver<List<UserInfo>>() };
+
                 // we send over opponend user info which is currently not reduced and has all available informations
                 SendGameData(Player1, MsgType.InGame, true, GameDataType.Initialisation,
-                    JsonConvert.SerializeObject(new List<UserInfo> { Player1, Player2 }));
+                    JsonConvert.SerializeObject(new List<UserInfo> { Player1.GetUserInfoClone(), Player2.GetUserInfoClone() }));
 
                 SendGameData(Player2, MsgType.InGame, true, GameDataType.Initialisation,
-                    JsonConvert.SerializeObject(new List<UserInfo> { Player1, Player2 }));
+                    JsonConvert.SerializeObject(new List<UserInfo> { Player1.GetUserInfoClone(), Player2.GetUserInfoClone() }));
 
                 SendHistoryToPlayers();
                 SendOptionsOrChoicesToPlayers();
@@ -263,7 +265,10 @@ namespace SabberStoneServer.Services
                 })
             };
             player.responseQueue.Enqueue(gameServerStream);
-            player.Visitors.ForEach(p => p.responseQueue.Enqueue(gameServerStream));
+
+            player.Visitors.ForEach(p => {
+                p.responseQueue.Enqueue(gameServerStream);
+            });
         }
 
         public void Stop()

@@ -8,6 +8,7 @@ namespace SabberStoneXConsole
     public class VisitorClient : GameClient
     {
         private string _accountName;
+
         public VisitorClient(string accountName, string targetIp, int port, GameController gameController) : base(targetIp, port, gameController)
         {
             _accountName = accountName;
@@ -29,16 +30,17 @@ namespace SabberStoneXConsole
 
                 case GameClientState.Queued:
                     break;
+
+                case GameClientState.Placed:
+                    break;
+
                 case GameClientState.Invited:
                     break;
+
                 case GameClientState.InGame:
                     break;
             }
         }
 
-        private void Register()
-        {
-            throw new NotImplementedException();
-        }
     }
 }

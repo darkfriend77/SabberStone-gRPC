@@ -115,7 +115,11 @@ namespace SabberStoneContract.Client
         {
             await Task.Run(() =>
             {
-                SendPowerChoicesChoice(GameAI.PowerChoices(_poGame, PowerChoices));
+                var powerChoice = GameAI.PowerChoices(_poGame, PowerChoices);
+                if (powerChoice != null)
+                {
+                    SendPowerChoicesChoice(GameAI.PowerChoices(_poGame, PowerChoices));
+                }
             });
         }
 
@@ -142,7 +146,11 @@ namespace SabberStoneContract.Client
         {
             await Task.Run(() =>
             {
-                SendPowerOptionChoice(GameAI.PowerOptions(_poGame, PowerOptions.PowerOptionList));
+                var powerOption = GameAI.PowerOptions(_poGame, PowerOptions.PowerOptionList);
+                if (powerOption != null)
+                {
+                    SendPowerOptionChoice(GameAI.PowerOptions(_poGame, PowerOptions.PowerOptionList));
+                }
             });
         }
 

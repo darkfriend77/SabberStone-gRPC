@@ -368,6 +368,7 @@ namespace SabberStoneServer.Services
     public class UserClient : UserInfo
     {
         public string Token { get; set; }
+
         public string Peer { get; set; }
 
         public Task ResponseStreamWriterTask { get; set; }
@@ -385,10 +386,26 @@ namespace SabberStoneServer.Services
         public UserClient()
         {
             CancellationTokenSource = new CancellationTokenSource();
+
             responseQueue = new ConcurrentQueue<GameServerStream>();
+
             Visitors = new List<UserClient>();
         }
 
+        public UserInfo GetUserInfoClone()
+        {
+            return new UserInfo()
+            {
+                AccountName = base.AccountName,
+                DeckData = base.DeckData,
+                GameConfigInfo = base.GameConfigInfo,
+                GameId = base.GameId,
+                PlayerId = base.PlayerId,
+                PlayerState = base.PlayerState,
+                SessionId = base.SessionId,
+                UserState = base.UserState
+            };
+        }
     }
 
 

@@ -255,6 +255,13 @@ namespace SabberStoneContract.Core
 
                     _gameController.GameId = gameData.GameId;
                     _gameController.PlayerId = gameData.PlayerId;
+
+                    // visitors are ignoring ....invitation
+                    if (GameClientState == GameClientState.Placed)
+                    {
+                        break;
+                    }
+
                     GameClientState = GameClientState.Invited;
 
                     // action call here
@@ -299,7 +306,7 @@ namespace SabberStoneContract.Core
                         case GameDataType.Result:
                             GameClientState = GameClientState.Registered;
                             _gameController.SetResult();
-                            OnMatchFinished();
+                            CallMatchFinished();
                             break;
                     }
                     break;
@@ -367,8 +374,9 @@ namespace SabberStoneContract.Core
             await Task.Run(() => { _gameController.SendInvitationReply(true); });
         }
 
-        public virtual void OnMatchFinished()
+        public virtual void CallMatchFinished()
         {
+
         }
     }
 }
