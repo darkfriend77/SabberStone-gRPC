@@ -2,20 +2,14 @@
 using Newtonsoft.Json;
 using SabberStoneContract.Helper;
 using SabberStoneContract.Model;
-using SabberStoneCore.Config;
 using SabberStoneCore.Enums;
 using SabberStoneCore.Kettle;
 using SabberStoneCore.Model;
-using SabberStoneCore.Model.Entities;
 using SabberStoneCore.Tasks.PlayerTasks;
 using SabberStoneServer.Core;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading;
 using SabberStoneContract.Core;
 
 namespace SabberStoneServer.Services
@@ -83,7 +77,7 @@ namespace SabberStoneServer.Services
             SendGameData(Player2, MsgType.Invitation, true, GameDataType.None);
         }
 
-        public void Start(GameConfigInfo gameConfigInfo)
+        private void Start(GameConfigInfo gameConfigInfo)
         {
             Log.Info($"[_gameId:{GameId}] Game creation is happening in a few seconds!!!");
 
@@ -121,12 +115,14 @@ namespace SabberStoneServer.Services
                 Player1.GameConfigInfo = gameConfigInfo;
                 Player2.GameConfigInfo = gameConfigInfo;
 
-                // we send over opponend user info which is reduced to open available informations
+                //var serializerSetting = new JsonSerializerSettings { ContractResolver = new TypeOnlyContractResolver<List<UserInfo>>() };
+
+                // we send over opponend user info which is currently not reduced and has all available informations
                 SendGameData(Player1, MsgType.InGame, true, GameDataType.Initialisation,
-                    JsonConvert.SerializeObject(new List<UserInfo> { Player1, Player2 }));
+                    JsonConvert.SerializeObject(new List<UserInfo> { Player1.GetUserInfoClone(), Player2.GetUserInfoClone() }));
 
                 SendGameData(Player2, MsgType.InGame, true, GameDataType.Initialisation,
-                    JsonConvert.SerializeObject(new List<UserInfo> { Player1, Player2 }));
+                    JsonConvert.SerializeObject(new List<UserInfo> { Player1.GetUserInfoClone(), Player2.GetUserInfoClone() }));
 
                 SendHistoryToPlayers();
                 SendOptionsOrChoicesToPlayers();
@@ -256,7 +252,7 @@ namespace SabberStoneServer.Services
 
         public void SendGameData(UserClient player, int playerId, MsgType messageType, bool messageState, GameDataType gameDataType, string gameDataObject = "")
         {
-            player.responseQueue.Enqueue(new GameServerStream()
+            var gameServerStream = new GameServerStream()
             {
                 MessageType = messageType,
                 MessageState = messageState,
@@ -267,6 +263,11 @@ namespace SabberStoneServer.Services
                     GameDataType = gameDataType,
                     GameDataObject = gameDataObject
                 })
+            };
+            player.responseQueue.Enqueue(gameServerStream);
+
+            player.Visitors.ForEach(p => {
+                p.responseQueue.Enqueue(gameServerStream);
             });
         }
 

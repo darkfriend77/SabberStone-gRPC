@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,7 +10,6 @@ using log4net;
 using Newtonsoft.Json;
 using SabberStoneContract.Core;
 using SabberStoneContract.Model;
-using SabberStoneCore.Model;
 using SabberStoneServer.Core;
 
 namespace SabberStoneServer.Services
@@ -230,6 +228,84 @@ namespace SabberStoneServer.Services
             }
         }
 
+        public override Task<ServerReply> VisitAccount(VisitAccountRequest request, ServerCallContext context)
+        {
+            if (!TokenAuthentification(context.RequestHeaders, out string clientTokenValue))
+            {
+                return Task.FromResult(new ServerReply
+                {
+                    RequestState = false,
+                    RequestMessage = string.Empty
+                });
+            }
+
+            if (!_registredUsers.TryGetValue(clientTokenValue, out UserClient userDataInfo))
+            {
+                Log.Info($"couldn't get user data info!");
+                return Task.FromResult(new ServerReply
+                {
+                    RequestState = false,
+                    RequestMessage = string.Empty
+                });
+            }
+
+            if (userDataInfo.ResponseStreamWriterTask.Status != TaskStatus.Running)
+            {
+                Log.Info($"User hasn't established a channel initialisation!");
+                return Task.FromResult(new ServerReply
+                {
+                    RequestState = false,
+                    RequestMessage = string.Empty
+                });
+            }
+
+            if (!request.Join && userDataInfo.VisitorClient != null)
+            {
+                Log.Info($"Not visiting anymore {userDataInfo.VisitorClient.AccountName}!");
+                userDataInfo.VisitorClient.Visitors.Remove(userDataInfo);
+                userDataInfo.VisitorClient = null;
+                return Task.FromResult(new ServerReply
+                {
+                    RequestState = true,
+                    RequestMessage = string.Empty
+                });
+            }
+
+            var accountToVisit = RegistredUsers.FirstOrDefault(p => p.AccountName == request.AccountName);
+
+            if (accountToVisit == null)
+            {
+                Log.Info($"Account to visit doesn't exist!");
+                return Task.FromResult(new ServerReply
+                {
+                    RequestState = false,
+                    RequestMessage = string.Empty
+                });
+            }
+
+            if (accountToVisit.PlayerState != PlayerState.None)
+            {
+                Log.Info($"Account to visit is already occupied {accountToVisit.PlayerState}!");
+                return Task.FromResult(new ServerReply
+                {
+                    RequestState = false,
+                    RequestMessage = string.Empty
+                });
+            }
+
+            userDataInfo.VisitorClient = accountToVisit;
+            accountToVisit.Visitors.Add(userDataInfo);
+
+            Log.Info($"{userDataInfo.AccountName} just joined {userDataInfo.VisitorClient} as visitor[{userDataInfo.VisitorClient.Visitors.Count}]!");
+
+
+            return Task.FromResult(new ServerReply
+            {
+                RequestState = true,
+                RequestMessage = string.Empty
+            });
+        }
+
         public override Task<ServerReply> GameQueue(QueueRequest request, ServerCallContext context)
         {
             if (!TokenAuthentification(context.RequestHeaders, out string clientTokenValue))
@@ -292,6 +368,7 @@ namespace SabberStoneServer.Services
     public class UserClient : UserInfo
     {
         public string Token { get; set; }
+
         public string Peer { get; set; }
 
         public Task ResponseStreamWriterTask { get; set; }
@@ -302,11 +379,32 @@ namespace SabberStoneServer.Services
 
         public CancellationTokenSource CancellationTokenSource;
 
+        public UserClient VisitorClient { get; set; }
+
+        public List<UserClient> Visitors;
+
         public UserClient()
         {
             CancellationTokenSource = new CancellationTokenSource();
+
             responseQueue = new ConcurrentQueue<GameServerStream>();
+
+            Visitors = new List<UserClient>();
         }
 
+        public UserInfo GetUserInfoClone()
+        {
+            return new UserInfo()
+            {
+                AccountName = base.AccountName,
+                DeckData = base.DeckData,
+                GameConfigInfo = base.GameConfigInfo,
+                GameId = base.GameId,
+                PlayerId = base.PlayerId,
+                PlayerState = base.PlayerState,
+                SessionId = base.SessionId,
+                UserState = base.UserState
+            };
+        }
     }
 }

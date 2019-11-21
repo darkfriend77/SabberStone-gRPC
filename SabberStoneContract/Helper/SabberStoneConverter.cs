@@ -7,7 +7,6 @@ using SabberStoneCore.Model.Entities;
 using SabberStoneCore.Tasks.PlayerTasks;
 using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace SabberStoneContract.Helper
 {

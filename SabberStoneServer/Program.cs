@@ -1,9 +1,6 @@
 ﻿using System;
-using System.IO;
 using System.Reflection;
-using System.Xml;
 using log4net;
-using log4net.Config;
 using SabberStoneServer.Core;
 
 namespace SabberStoneServer
@@ -19,7 +16,6 @@ namespace SabberStoneServer
 
             var matchMaker = sabberStoneServer.GetMatchMakerService();
             matchMaker.Start(1);
-
             Log.Info("Press any key to stop the server...");
             Console.ReadKey();
 

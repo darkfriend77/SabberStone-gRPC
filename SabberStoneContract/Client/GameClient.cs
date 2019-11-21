@@ -2,14 +2,11 @@
 //using log4net;
 using Newtonsoft.Json;
 using SabberStoneContract.Client;
-using SabberStoneContract.Helper;
 using SabberStoneContract.Model;
 using SabberStoneCore.Kettle;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -264,6 +261,13 @@ namespace SabberStoneContract.Core
 
                     _gameController.GameId = gameData.GameId;
                     _gameController.PlayerId = gameData.PlayerId;
+
+                    // visitors are ignoring ....invitation
+                    if (GameClientState == GameClientState.Placed)
+                    {
+                        break;
+                    }
+
                     GameClientState = GameClientState.Invited;
 
                     // action call here
@@ -308,11 +312,31 @@ namespace SabberStoneContract.Core
                         case GameDataType.Result:
                             GameClientState = GameClientState.Registered;
                             _gameController.SetResult();
-                            OnMatchFinished();
+                            CallMatchFinished();
                             break;
                     }
                     break;
             }
+        }
+
+        public void VisitAccount(bool join, string accountName)
+        {
+            if (join && GameClientState != GameClientState.Registered)
+            {
+                //Log.Warn("Client isn't registred.");
+                return;
+            }
+
+            var serverReply = _client.VisitAccount(new VisitAccountRequest { Join = join, AccountName = accountName },
+                new Metadata { new Metadata.Entry("token", _sessionToken) });
+
+            if (!serverReply.RequestState)
+            {
+                //Log.Warn("Bad MatchGameRequest.");
+                return;
+            }
+
+            GameClientState = GameClientState.Placed;
         }
 
         public void Queue(GameType gameType = GameType.Normal, string deckData = "")
@@ -356,8 +380,9 @@ namespace SabberStoneContract.Core
             await Task.Run(() => { _gameController.SendInvitationReply(true); });
         }
 
-        public virtual void OnMatchFinished()
+        public virtual void CallMatchFinished()
         {
+
         }
     }
 }

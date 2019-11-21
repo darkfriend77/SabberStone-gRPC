@@ -1,15 +1,13 @@
-﻿
-using SabberStoneClient;
-using SabberStoneContract;
+﻿using SabberStoneContract;
 using SabberStoneContract.Client;
 using SabberStoneContract.Core;
 using SabberStoneContract.Interface;
+using SabberStoneContract.Model;
 using SabberStoneServer.Core;
 using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace SabberStoneXConsole
 {
@@ -21,8 +19,48 @@ namespace SabberStoneXConsole
             RunServerWith(1);
             //FullTest();
             //RunServer();
+            //VisitorTest();
+
 
             Console.ReadKey();
+        }
+
+        private static void VisitorTest()
+        {
+
+            RunServer();
+            GameController testController1 = new GameController(new RandomAI());
+            GameClient testClient1 = new GameClient("127.0.0.1", 50051, testController1);
+            testClient1.Connect();
+            testClient1.Register("TestClient1", "1234");
+
+            Thread.Sleep(1000);
+
+            GameController testController2 = new GameController(new RandomAI());
+            GameClient testClient2 = new GameClient("127.0.0.1", 50051, testController2);
+            testClient2.Connect();
+            testClient2.Register("TestClient2", "1234");
+
+            GameClient visitorClient1 = new GameClient("127.0.0.1", 50051, new GameController(new VisitorAI()));
+            visitorClient1.Connect();
+            visitorClient1.Register("VisitorClient1", "1234");
+
+            Thread.Sleep(1000);
+
+            visitorClient1.VisitAccount(true, "TestClient1");
+
+            Thread.Sleep(1000);
+
+            testClient1.Queue(GameType.Normal, "AAEBAQcCrwSRvAIOHLACkQP/A44FqAXUBaQG7gbnB+8HgrACiLACub8CAA==");
+
+            Thread.Sleep(1000);
+
+            testClient2.Queue(GameType.Normal, "AAEBAQcCrwSRvAIOHLACkQP/A44FqAXUBaQG7gbnB+8HgrACiLACub8CAA==");
+                       
+            Thread.Sleep(10000);
+
+            visitorClient1.VisitAccount(false, "");
+
         }
 
         public static void RunServer()
@@ -122,4 +160,5 @@ namespace SabberStoneXConsole
         }
 
     }
+
 }
