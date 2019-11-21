@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using SabberStoneContract.Core;
+using System.IO;
 
 namespace SabberStoneServer.Services
 {
@@ -28,12 +29,16 @@ namespace SabberStoneServer.Services
 
         public PlayState Play1State => _game.Player1.PlayState;
 
+        private String _player1GameLogName = null;
+
         public UserClient Player2 { get; }
 
         public PlayState Play2State => _game.Player2.PlayState;
 
-        private Game _game;
+        private String _player2GameLogName = null;
 
+        private Game _game;
+        
         public MatchGame MatchGame(int playerId) => CreateMatchGameReply();
 
         private readonly int _id;
@@ -68,13 +73,17 @@ namespace SabberStoneServer.Services
 
         public void Initialize()
         {
+            var baseQualifier = $"-G{GameId}_{DateTime.Now.Ticks}.log";
+            _player1GameLogName = $"P{Player1.AccountName}" + baseQualifier;
             // game invitation request for player 1
             Player1.PlayerState = PlayerState.Invitation;
             SendGameData(Player1, MsgType.Invitation, true, GameDataType.None);
 
+            _player2GameLogName = $"P{Player2.AccountName}" + baseQualifier;
             // game invitation request for player 2
             Player2.PlayerState = PlayerState.Invitation;
             SendGameData(Player2, MsgType.Invitation, true, GameDataType.None);
+            
         }
 
         private void Start(GameConfigInfo gameConfigInfo)
@@ -269,6 +278,16 @@ namespace SabberStoneServer.Services
             player.Visitors.ForEach(p => {
                 p.responseQueue.Enqueue(gameServerStream);
             });
+
+            if (true)
+            {
+                var gameLogPath = UserById(playerId) == Player1 ? _player1GameLogName : _player2GameLogName;
+
+                using (StreamWriter outputFile = new StreamWriter(Path.Combine(Environment.CurrentDirectory, gameLogPath), true))
+                {
+                    outputFile.WriteLine(JsonConvert.SerializeObject(gameServerStream));
+                }
+            }
         }
 
         public void Stop()
