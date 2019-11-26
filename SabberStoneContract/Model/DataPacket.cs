@@ -1,15 +1,13 @@
-﻿using Grpc.Core;
-using SabberStoneCore.Enums;
+﻿using SabberStoneCore.Enums;
 using SabberStoneCore.Kettle;
-using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace SabberStoneContract.Model
 {
     public enum UserState
     {
         None,
+        Connected,
         Queued,
         Invited,
         Prepared,
@@ -24,52 +22,26 @@ namespace SabberStoneContract.Model
         Quit
     }
 
-    public struct MessageLog
-    {
-        public MsgType Type;
-        public bool State;
-        public GameDataType GameDataType;
-        public string GameDataObject;
-
-        public override string ToString()
-        {
-            return $"[{Type}][{GameDataType}]";
-        }
-    }
-
-    public class UserDataInfo : UserInfo
-    {
-        public virtual string Token { get; set; }
-        public virtual string Peer { get; set; }
-        public virtual IServerStreamWriter<GameServerStream> ResponseStream { get; set; }
-
-        public Stack<MessageLog> Logs = new Stack<MessageLog>();
-    }
-
     public class UserInfo
     {
         public virtual int SessionId { get; set; }
         public virtual string AccountName { get; set; }
         public virtual UserState UserState { get; set; }
         public virtual int GameId { get; set; }
-        public virtual DeckType DeckType { get; set; }
         public virtual string DeckData { get; set; }
         public virtual PlayerState PlayerState { get; set; }
         public virtual int PlayerId { get; set; }
-        public UserInfo OpenUserInfo()
-        {
-            return new UserInfo()
-            {
-                SessionId = 0,
-                AccountName = AccountName,
-                UserState = UserState.None,
-                GameId = GameId,
-                DeckType = DeckType.None,
-                DeckData = null,
-                PlayerState = PlayerState.None,
-                PlayerId = PlayerId
-            };
-        }
+        public virtual GameConfigInfo GameConfigInfo { get; set; }
+    }
+
+    public class GameConfigInfo
+    {
+        public virtual bool SkipMulligan { get; set; }
+        public virtual bool Shuffle { get; set; }
+        public virtual bool FillDecks { get; set; }
+        public virtual bool Logging { get; set; }
+        public virtual bool History { get; set; }
+        public virtual int RandomSeed { get; set; }
     }
 
     public enum GameDataType
@@ -77,7 +49,9 @@ namespace SabberStoneContract.Model
         None,
         PowerHistory,
         PowerOptions,
+        PowerOption,
         PowerChoices,
+        PowerChoice,
         Concede,
         Result,
         Initialisation
@@ -87,12 +61,14 @@ namespace SabberStoneContract.Model
     {
         public virtual int GameId { get; set; }
         public virtual int PlayerId { get; set; }
+        public virtual int Seed { get; set; }
         public virtual GameDataType GameDataType { get; set; }
         public virtual string GameDataObject { get; set; }
     }
 
     public class PowerChoices
     {
+        public virtual int Index { get; set; }
         public virtual ChoiceType ChoiceType { get; set; }
         public virtual List<int> Entities { get; set; }
     }

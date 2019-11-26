@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using Grpc.Core;
 using log4net;
+using SabberStoneContract.Core;
 using SabberStoneServer.Services;
 
 namespace SabberStoneServer.Core
@@ -46,6 +47,7 @@ namespace SabberStoneServer.Core
 
         public void Stop()
         {
+            _matchMakerService.Stop();
             _server.ShutdownAsync().Wait();
         }
 
