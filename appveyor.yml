@@ -18,18 +18,6 @@ build_script:
     
     appveyor PushArtifact %APPVEYOR_BUILD_FOLDER%/SabberStoneServer/bin/Release/SabberStoneServer.%APPVEYOR_BUILD_VERSION%.nupkg -FileName SabberStoneServer.%APPVEYOR_BUILD_VERSION%.nupkg -DeploymentName SabberStoneServer
     
-    dotnet publish %APPVEYOR_BUILD_FOLDER%/SabberStoneXConsole/SabberStoneXConsole.csproj -p:Version=%APPVEYOR_BUILD_VERSION% -c %TARGET_CONFIGURATION% -o ./publish/win-x86 -r win-x86
-       
-    7z a SabberStoneGRPC-%APPVEYOR_BUILD_VERSION%-win-x86.zip %APPVEYOR_BUILD_FOLDER%/SabberStoneXConsole/publish/win-x86/*
-
-    appveyor PushArtifact SabberStone-GRPC-%APPVEYOR_BUILD_VERSION%-win-x86.zip -DeploymentName SabberStoneGRPC
-    
-    dotnet publish %APPVEYOR_BUILD_FOLDER%/SabberStoneXConsole/SabberStoneXConsole.csproj -p:Version=%APPVEYOR_BUILD_VERSION% --configuration %TARGET_CONFIGURATION% -o ./publish/win-x64 -r win-x64
-   
-    7z a SabberStoneGRPC-%APPVEYOR_BUILD_VERSION%-win-x64.zip %APPVEYOR_BUILD_FOLDER%/SabberStoneXConsole/publish/win-x64/*
-
-    appveyor PushArtifact SabberStone-GRPC-%APPVEYOR_BUILD_VERSION%-win-x64.zip -DeploymentName SabberStoneGRPC
-    
 test_script:
 - cmd: >-
     dotnet test --configuration Release ./SabberStoneXTest
