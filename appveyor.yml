@@ -1,0 +1,41 @@
+version: 1.0.{build}
+image: Visual Studio 2017
+dotnet_csproj:
+  patch: true
+  file: '**\*.csproj'
+  version: '{version}'
+  package_version: '{version}'
+  assembly_version: '{version}'
+  file_version: '{version}'
+  informational_version: '{version}'
+environment:
+  TARGET_CONFIGURATION: Release
+build_script:
+- cmd: >-
+    dotnet build -p:Version=%APPVEYOR_BUILD_VERSION% --configuration %TARGET_CONFIGURATION%
+    
+    appveyor PushArtifact %APPVEYOR_BUILD_FOLDER%/SabberStoneContract/bin/Release/SabberStoneContract.%APPVEYOR_BUILD_VERSION%.nupkg -FileName SabberStoneContract.%APPVEYOR_BUILD_VERSION%.nupkg -DeploymentName SabberStoneContract
+    
+    appveyor PushArtifact %APPVEYOR_BUILD_FOLDER%/SabberStoneServer/bin/Release/SabberStoneServer.%APPVEYOR_BUILD_VERSION%.nupkg -FileName SabberStoneServer.%APPVEYOR_BUILD_VERSION%.nupkg -DeploymentName SabberStoneServer
+    
+    dotnet publish %APPVEYOR_BUILD_FOLDER%/SabberStoneXConsole/SabberStoneXConsole.csproj -p:Version=%APPVEYOR_BUILD_VERSION% -c %TARGET_CONFIGURATION% -o ./publish/win-x86 -r win-x86
+       
+    7z a SabberStoneGRPC-%APPVEYOR_BUILD_VERSION%-win-x86.zip %APPVEYOR_BUILD_FOLDER%/SabberStoneXConsole/publish/win-x86/*
+
+    appveyor PushArtifact SabberStone-GRPC-%APPVEYOR_BUILD_VERSION%-win-x86.zip -DeploymentName SabberStoneGRPC
+    
+    dotnet publish %APPVEYOR_BUILD_FOLDER%/SabberStoneXConsole/SabberStoneXConsole.csproj -p:Version=%APPVEYOR_BUILD_VERSION% --configuration %TARGET_CONFIGURATION% -o ./publish/win-x64 -r win-x64
+   
+    7z a SabberStoneGRPC-%APPVEYOR_BUILD_VERSION%-win-x64.zip %APPVEYOR_BUILD_FOLDER%/SabberStoneXConsole/publish/win-x64/*
+
+    appveyor PushArtifact SabberStone-GRPC-%APPVEYOR_BUILD_VERSION%-win-x64.zip -DeploymentName SabberStoneGRPC
+    
+test_script:
+- cmd: >-
+    dotnet test --configuration Release ./SabberStoneXTest
+    
+deploy:
+- provider: NuGet
+  api_key:
+    secure: qR9SWQUPkiYwFQKvljIajuoDvjS4rDAHkYVY1QaFP3yRqRoEp+LF/Um2v2Y4LqcN
+  artifact: /.*.nupkg/
